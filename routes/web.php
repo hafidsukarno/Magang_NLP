@@ -99,6 +99,14 @@ Route::middleware(['auth', 'role:hrd'])->group(function () {
     Route::get('/hrd/application/{id}/file', [HRDController::class, 'viewPdf'])
         ->name('hrd.application.viewPdf');
 
+    // Member approval
+    Route::post('/hrd/member/{memberId}/update', [HRDController::class, 'updateMember'])
+        ->name('hrd.member.update');
+
+    // Leader approval
+    Route::post('/hrd/leader/{appId}/update', [HRDController::class, 'updateLeader'])
+        ->name('hrd.leader.update');
+
     // Departments CRUD
     Route::get('/hrd/departments', [DepartmentController::class, 'index'])
         ->name('departments.index');
@@ -111,6 +119,9 @@ Route::middleware(['auth', 'role:hrd'])->group(function () {
 
     Route::patch('/hrd/departments/{department}/update-period', [DepartmentController::class, 'updatePeriod'])
         ->name('departments.updatePeriod');
+
+    Route::delete('/hrd/departments/{department}', [DepartmentController::class, 'destroy'])
+        ->name('departments.destroy');
 
     // Lihat mahasiswa diterima per departemen
     Route::get(

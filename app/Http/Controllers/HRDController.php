@@ -63,7 +63,7 @@ class HRDController extends Controller {
     {
         $search = request('search');
 
-        $applications = Application::with('department')
+        $applications = Application::with('department', 'members')
             ->when($search, function($q) use ($search) {
                 $q->where('leader_name','like',"%$search%")
                 ->orWhere('major','like',"%$search%")
@@ -207,5 +207,214 @@ class HRDController extends Controller {
         }
 
         return response()->file($file);
+    }
+
+    /**
+     * Update status untuk member tertentu dalam group application
+     */
+    public function updateMember(Request $r, $memberId) {
+        $r->validate([
+            'status' => 'required|in:menunggu,diterima,ditolak',
+            'hrd_note' => 'nullable|string',
+        ]);
+
+        $member = \App\Models\ApplicationMember::findOrFail($memberId);
+        $app = $member->application;
+
+        // If rejecting, require hrd_note
+        if ($r->status === 'ditolak' && trim($r->hrd_note ?? '') === '') {
+            return back()->withErrors(['hrd_note' => 'Keterangan penolakan wajib diisi.'])->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            // Only check quota when moving to 'diterima'
+            if ($r->status === 'diterima') {
+                $targetDeptId = $app->department_id;
+                if (!$targetDeptId) {
+                    DB::rollBack();
+                    return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
+                }
+
+                // Check quota - count already accepted people including this new one
+                $quotaRecord = DepartmentQuota::where('department_id', $targetDeptId)
+                    ->where('period_start', '<=', $app->period_start)
+                    ->where('period_end', '>=', $app->period_end)
+                    ->lockForUpdate()
+                    ->first();
+
+                $quotaValue = null;
+                if ($quotaRecord) {
+                    $quotaValue = (int) $quotaRecord->quota;
+                } else {
+                    $dept = Department::find($targetDeptId);
+                    $quotaValue = $dept ? (int)($dept->quota ?? 0) : null;
+                }
+
+                if ($quotaValue !== null) {
+                    // Tentukan berapa quota yang dibutuhkan
+                    // - Individual: leader = 1 orang
+                    // - Group: leader (ketua) = 1 orang + members
+                    $neededPeople = 1; // 1 untuk member yang sedang diproses
+
+                    // count already accepted PEOPLE overlapping the period, exclude this application
+                    $existingApps = Application::where('department_id', $targetDeptId)
+                        ->where('id', '!=', $app->id)
+                        ->where(function ($q) use ($app) {
+                            $q->whereBetween('period_start', [$app->period_start, $app->period_end])
+                              ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
+                              ->orWhere(function($qq) use ($app) {
+                                  $qq->where('period_start', '<=', $app->period_start)
+                                     ->where('period_end', '>=', $app->period_end);
+                              });
+                        })
+                        ->get();
+
+                    $usedPeople = 0;
+                    foreach ($existingApps as $a) {
+                        if ($a->type === 'individual') {
+                            // Individual: hitung jika leader diterima
+                            if ($a->leader_status == 'diterima') {
+                                $usedPeople++;
+                            }
+                        } else {
+                            // Group: hitung ketua + members yang diterima
+                            if ($a->leader_status == 'diterima') {
+                                $usedPeople++; // ketua
+                            }
+                            $usedPeople += $a->members->where('status', 'diterima')->count();
+                        }
+                    }
+
+                    if (($usedPeople + $neededPeople) > $quotaValue) {
+                        DB::rollBack();
+                        return back()->withErrors(['quota' => 'Kuota sudah penuh untuk periode tersebut — tidak dapat menerima member ini.'])->withInput();
+                    }
+                } else {
+                    DB::rollBack();
+                    return back()->withErrors(['quota' => 'Tidak ada kuota yang tersedia untuk departemen ini.'])->withInput();
+                }
+            }
+
+            // Update member status
+            $member->status = $r->status;
+            if ($r->status === 'ditolak') {
+                $member->hrd_note = $r->hrd_note;
+            } else {
+                $member->hrd_note = $r->hrd_note ?: null;
+            }
+            $member->save();
+
+            DB::commit();
+            return back()->with('success', 'Status member berhasil diperbarui.');
+        } catch (\Throwable $ex) {
+            DB::rollBack();
+            Log::error('Member update error: '.$ex->getMessage());
+            return back()->withErrors(['general' => 'Terjadi kesalahan, silakan coba lagi.']);
+        }
+    }
+
+    /**
+     * Update status untuk leader (ketua tim) dalam group application
+     */
+    public function updateLeader(Request $r, $appId) {
+        $r->validate([
+            'status' => 'required|in:menunggu,diterima,ditolak',
+            'hrd_note' => 'nullable|string',
+        ]);
+
+        $app = Application::findOrFail($appId);
+
+        // If rejecting, require hrd_note
+        if ($r->status === 'ditolak' && trim($r->hrd_note ?? '') === '') {
+            return back()->withErrors(['hrd_note' => 'Keterangan penolakan wajib diisi.'])->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            // Only check quota when moving to 'diterima'
+            if ($r->status === 'diterima') {
+                $targetDeptId = $app->department_id;
+                if (!$targetDeptId) {
+                    DB::rollBack();
+                    return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
+                }
+
+                // Check quota - count already accepted people including this leader
+                $quotaRecord = DepartmentQuota::where('department_id', $targetDeptId)
+                    ->where('period_start', '<=', $app->period_start)
+                    ->where('period_end', '>=', $app->period_end)
+                    ->lockForUpdate()
+                    ->first();
+
+                $quotaValue = null;
+                if ($quotaRecord) {
+                    $quotaValue = (int) $quotaRecord->quota;
+                } else {
+                    $dept = Department::find($targetDeptId);
+                    $quotaValue = $dept ? (int)($dept->quota ?? 0) : null;
+                }
+
+                if ($quotaValue !== null) {
+                    // Tentukan berapa quota yang dibutuhkan
+                    // - Individual: leader = 1 orang
+                    // - Group: leader (ketua) = 1 orang
+                    $neededPeople = 1;
+
+                    // count already accepted PEOPLE overlapping the period, exclude this application
+                    $existingApps = Application::where('department_id', $targetDeptId)
+                        ->where('id', '!=', $app->id)
+                        ->where(function ($q) use ($app) {
+                            $q->whereBetween('period_start', [$app->period_start, $app->period_end])
+                              ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
+                              ->orWhere(function($qq) use ($app) {
+                                  $qq->where('period_start', '<=', $app->period_start)
+                                     ->where('period_end', '>=', $app->period_end);
+                              });
+                        })
+                        ->get();
+
+                    $usedPeople = 0;
+                    foreach ($existingApps as $a) {
+                        if ($a->type === 'individual') {
+                            // Individual: hitung jika leader diterima
+                            if ($a->leader_status == 'diterima') {
+                                $usedPeople++;
+                            }
+                        } else {
+                            // Group: hitung ketua + members yang diterima
+                            if ($a->leader_status == 'diterima') {
+                                $usedPeople++; // ketua
+                            }
+                            $usedPeople += $a->members->where('status', 'diterima')->count();
+                        }
+                    }
+
+                    if (($usedPeople + $neededPeople) > $quotaValue) {
+                        DB::rollBack();
+                        return back()->withErrors(['quota' => 'Kuota sudah penuh untuk periode tersebut — tidak dapat menerima leader.'])->withInput();
+                    }
+                } else {
+                    DB::rollBack();
+                    return back()->withErrors(['quota' => 'Tidak ada kuota yang tersedia untuk departemen ini.'])->withInput();
+                }
+            }
+
+            // Update leader status
+            $app->leader_status = $r->status;
+            if ($r->status === 'ditolak') {
+                $app->leader_note = $r->hrd_note;
+            } else {
+                $app->leader_note = $r->hrd_note ?: null;
+            }
+            $app->save();
+
+            DB::commit();
+            return back()->with('success', 'Status leader berhasil diperbarui.');
+        } catch (\Throwable $ex) {
+            DB::rollBack();
+            Log::error('Leader update error: '.$ex->getMessage());
+            return back()->withErrors(['general' => 'Terjadi kesalahan, silakan coba lagi.']);
+        }
     }
 }

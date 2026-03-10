@@ -28,7 +28,8 @@
                     <tr>
                         <th class="px-3 py-2 border">No</th>
                         <th class="px-10 py-2 border">Kode Pengajuan</th>
-                        <th class="px-3 py-2 border">Nama</th>
+                        <th class="px-3 py-2 border">Tipe</th>
+                        <th class="px-3 py-2 border">Nama / Anggota</th>
                         <th class="px-3 py-2 border">Major</th>
                         <th class="px-3 py-2 border">Departemen</th>
                         {{-- <th class="px-3 py-2 border">Score</th> --}}
@@ -43,7 +44,29 @@
                             <td class="px-3 py-2 border font-semibold text-gray-800">
                                 {{ $a->registration_code }}
                             </td>
-                            <td class="px-3 py-2 border font-medium">{{ $a->leader_name }}</td>
+                            <td class="px-3 py-2 border">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-lg
+                                    @if ($a->type == 'group') bg-blue-100 text-blue-700
+                                    @else bg-purple-100 text-purple-700 @endif">
+                                    {{ ucfirst($a->type) }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 border font-medium text-left">
+                                @if ($a->type === 'group')
+                                    <div class="text-sm">
+                                        <div class="font-semibold text-gray-900">👤 {{ $a->leader_name }}</div>
+                                        @if ($a->members && $a->members->count() > 0)
+                                            <div class="text-gray-600 mt-1">
+                                                @foreach ($a->members as $member)
+                                                    <div class="text-xs">• {{ $member->name }}</div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    {{ $a->leader_name }}
+                                @endif
+                            </td>
                             <td class="px-3 py-2 border">{{ $a->major }}</td>
                             <td class="px-3 py-2 border">{{ $a->department->name ?? '-' }}</td>
                             {{-- <td class="px-3 py-2 border">
@@ -66,14 +89,44 @@
                             @endif
                         </td> --}}
                             <td class="px-3 py-2 border">
-                                <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-lg
-                                @if ($a->status == 'menunggu') bg-yellow-100 text-yellow-700
-                                @elseif($a->status == 'diterima') bg-green-100 text-green-700
-                                @elseif($a->status == 'ditolak') bg-red-100 text-red-700
-                                @else bg-gray-100 text-gray-700 @endif">
-                                    {{ ucfirst($a->status) }}
-                                </span>
+                                @if ($a->type === 'individual')
+                                    {{-- Individual: tampilkan leader_status --}}
+                                    <span
+                                        class="px-2 py-1 text-xs font-semibold rounded-lg
+                                    @if ($a->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
+                                    @elseif($a->leader_status == 'diterima') bg-green-100 text-green-700
+                                    @elseif($a->leader_status == 'ditolak') bg-red-100 text-red-700
+                                    @else bg-gray-100 text-gray-700 @endif">
+                                        {{ ucfirst($a->leader_status) }}
+                                    </span>
+                                @else
+                                    {{-- Group: tampilkan status leader dan ringkasan anggota --}}
+                                    <div class="text-xs space-y-1">
+                                        <div>
+                                            <span class="font-semibold">Ketua:</span>
+                                            <span
+                                                class="px-2 py-0.5 rounded text-xs font-semibold ml-1
+                                            @if ($a->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
+                                            @elseif($a->leader_status == 'diterima') bg-green-100 text-green-700
+                                            @elseif($a->leader_status == 'ditolak') bg-red-100 text-red-700
+                                            @else bg-gray-100 text-gray-700 @endif">
+                                                {{ ucfirst($a->leader_status) }}
+                                            </span>
+                                        </div>
+                                        @php
+                                            $diterima = $a->members->where('status', 'diterima')->count();
+                                            $ditolak = $a->members->where('status', 'ditolak')->count();
+                                            $menunggu = $a->members->where('status', 'menunggu')->count();
+                                            $total = $a->members->count();
+                                        @endphp
+                                        <div class="text-gray-700">
+                                            Anggota: <span class="font-semibold">{{ $diterima }}/{{ $total }}</span>
+                                            @if ($ditolak > 0)
+                                                <span class="text-red-600">{{ $ditolak }} tolak</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-3 py-2 border">
                                 <a href="{{ route('hrd.application.show', $a->id) }}"

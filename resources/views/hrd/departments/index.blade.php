@@ -1,4 +1,4 @@
-@section('title', 'Departements')
+ @section('title', 'Departements')
 <x-app-layout>
 
     {{-- Lucide Icons --}}
@@ -145,6 +145,16 @@
                                 <a href="{{ route('prodi-maps.index', $d->id) }}"
                                     class="text-blue-600 hover:text-blue-800 transition" title="Pengaturan Prodi">
                                     <i data-lucide="settings" class="w-5 h-5"></i>
+                                </a>
+
+                                <!-- DELETE -->
+                                <form id="delete-form-{{ $d->id }}" action="{{ route('departments.destroy', $d->id) }}" method="POST" style="display:none;">
+                                    @csrf
+                                    @method('DELETE')
+                                </form>
+                                <a href="javascript:void(0)" onclick="confirmDelete({{ $d->id }}, '{{ $d->name }}')"
+                                    class="text-red-600 hover:text-red-800 transition" title="Hapus Departemen">
+                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
                                 </a>
 
                             </td>
@@ -585,6 +595,23 @@
                 addMajorFieldEdit();
                 addSkillFieldEdit();
                 lucide.createIcons();
+            });
+        }
+
+        function confirmDelete(departmentId, departmentName) {
+            Swal.fire({
+                title: 'Hapus Departemen?',
+                html: `Are you sure you want to delete <strong>${departmentName}</strong>? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(`delete-form-${departmentId}`).submit();
+                }
             });
         }
     </script>

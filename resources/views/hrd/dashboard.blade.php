@@ -4,15 +4,45 @@
     @php
         $currentMonth = \Carbon\Carbon::now()->month;
 
-        $lolos_count = $departments->sum('accepted_count');
+        // Hitung lolos_count dari leader_status='diterima' + members dengan status='diterima'
+        $lolos_count = 0;
+        $tidak_lolos_count = 0;
+        $pending_count = 0;
 
-        $tidak_lolos_count = \App\Models\Application::where('status', 'ditolak')
-            ->whereMonth('created_at', $currentMonth)
-            ->count();
-
-        $pending_count = \App\Models\Application::where('status', 'menunggu')
-            ->whereMonth('created_at', $currentMonth)
-            ->count();
+        $allApps = \App\Models\Application::whereMonth('created_at', $currentMonth)->get();
+        
+        foreach ($allApps as $app) {
+            if ($app->type === 'individual') {
+                // Individual: tergantung leader_status
+                if ($app->leader_status == 'diterima') {
+                    $lolos_count++;
+                } elseif ($app->leader_status == 'ditolak') {
+                    $tidak_lolos_count++;
+                } elseif ($app->leader_status == 'menunggu') {
+                    $pending_count++;
+                }
+            } else {
+                // Group: hitung leader + members
+                if ($app->leader_status == 'diterima') {
+                    $lolos_count++;
+                } elseif ($app->leader_status == 'ditolak') {
+                    $tidak_lolos_count++;
+                } elseif ($app->leader_status == 'menunggu') {
+                    $pending_count++;
+                }
+                
+                // Hitung members
+                foreach ($app->members as $member) {
+                    if ($member->status == 'diterima') {
+                        $lolos_count++;
+                    } elseif ($member->status == 'ditolak') {
+                        $tidak_lolos_count++;
+                    } elseif ($member->status == 'menunggu') {
+                        $pending_count++;
+                    }
+                }
+            }
+        }
 
         // Batasi aplikasi terbaru 5 buah
         $latest_applications = $applications->take(5);
@@ -105,8 +135,7 @@
                     <tbody class="text-gray-700 text-center">
                         @if ($firstDepartment)
                             @php
-                                // Ambil activeQuota hanya untuk menampilkan periode aktif (tanggal) dan, bila ada,
-                                // membatasi perhitungan acceptedPeople pada periode tersebut.
+                                // Ambil activeQuota untuk periode aktif
                                 $activeQuota = $firstDepartment->quotas()
                                     ->where('period_start', '<=', $today)
                                     ->where('period_end', '>=', $today)
@@ -116,10 +145,9 @@
                                 // Kuota numerik diambil langsung dari kolom departments
                                 $quotaValue = (int) ($firstDepartment->quota ?? 0);
 
+                                // Hitung accepted people berdasarkan leader_status dan application_members.status
                                 if ($activeQuota) {
-                                    // hitung accepted yang overlap periode activeQuota
-                                    $acceptedPeople = \App\Models\Application::where('department_id', $firstDepartment->id)
-                                        ->where('status','diterima')
+                                    $appsInPeriod = \App\Models\Application::where('department_id', $firstDepartment->id)
                                         ->where(function($q) use ($activeQuota) {
                                             $q->whereBetween('period_start', [$activeQuota->period_start, $activeQuota->period_end])
                                               ->orWhereBetween('period_end', [$activeQuota->period_start, $activeQuota->period_end])
@@ -127,14 +155,25 @@
                                                   $qq->where('period_start','<=',$activeQuota->period_start)
                                                      ->where('period_end','>=',$activeQuota->period_end);
                                               });
-                                        })->get()->sum(function($a){
-                                            return $a->type === 'group' ? $a->members->count() + 1 : 1;
-                                        });
+                                        })->get();
                                 } else {
-                                    // tidak ada activeQuota, hitung semua aplikasi yang diterima di departemen ini
-                                    $acceptedPeople = $firstDepartment->applications()->where('status','diterima')->get()->sum(function($a){
-                                        return $a->type === 'group' ? $a->members->count() + 1 : 1;
-                                    });
+                                    $appsInPeriod = $firstDepartment->applications()->get();
+                                }
+
+                                $acceptedPeople = 0;
+                                foreach ($appsInPeriod as $a) {
+                                    if ($a->type === 'individual') {
+                                        // Individual: hitung jika leader diterima
+                                        if ($a->leader_status == 'diterima') {
+                                            $acceptedPeople++;
+                                        }
+                                    } else {
+                                        // Group: hitung ketua (jika diterima) + members yang diterima
+                                        if ($a->leader_status == 'diterima') {
+                                            $acceptedPeople++; // ketua
+                                        }
+                                        $acceptedPeople += $a->members->where('status', 'diterima')->count();
+                                    }
                                 }
 
                                 $remainingQuota = max(0, $quotaValue - $acceptedPeople);
@@ -182,8 +221,7 @@
                                         $quotaValue = (int) ($d->quota ?? 0);
 
                                         if ($activeQuota) {
-                                            $acceptedPeople = \App\Models\Application::where('department_id', $d->id)
-                                                ->where('status','diterima')
+                                            $appsInPeriod = \App\Models\Application::where('department_id', $d->id)
                                                 ->where(function($q) use ($activeQuota) {
                                                     $q->whereBetween('period_start', [$activeQuota->period_start, $activeQuota->period_end])
                                                       ->orWhereBetween('period_end', [$activeQuota->period_start, $activeQuota->period_end])
@@ -191,13 +229,25 @@
                                                           $qq->where('period_start','<=',$activeQuota->period_start)
                                                              ->where('period_end','>=',$activeQuota->period_end);
                                                       });
-                                                })->get()->sum(function($a){
-                                                    return $a->type === 'group' ? $a->members->count() + 1 : 1;
-                                                });
+                                                })->get();
                                         } else {
-                                            $acceptedPeople = $d->applications()->where('status','diterima')->get()->sum(function($a){
-                                                return $a->type === 'group' ? $a->members->count() + 1 : 1;
-                                            });
+                                            $appsInPeriod = $d->applications()->get();
+                                        }
+
+                                        $acceptedPeople = 0;
+                                        foreach ($appsInPeriod as $a) {
+                                            if ($a->type === 'individual') {
+                                                // Individual: hitung jika leader diterima
+                                                if ($a->leader_status == 'diterima') {
+                                                    $acceptedPeople++;
+                                                }
+                                            } else {
+                                                // Group: hitung ketua (jika diterima) + members yang diterima
+                                                if ($a->leader_status == 'diterima') {
+                                                    $acceptedPeople++; // ketua
+                                                }
+                                                $acceptedPeople += $a->members->where('status', 'diterima')->count();
+                                            }
                                         }
 
                                         $remainingQuota = max(0, $quotaValue - $acceptedPeople);
@@ -279,19 +329,47 @@
                                     <span class="px-1 py-0.5 rounded-lg text-xs font-semibold {{ $scoreColor }}">{{ is_numeric($a->score) ? $a->score : '-' }}</span>
                                 </td> --}}
                                 <td class="px-1 py-0.5 border">
-                                    @php
-                                        $statusColor =
-                                            $a->status == 'menunggu'
-                                                ? 'bg-yellow-100 text-yellow-700'
-                                                : ($a->status == 'diterima'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : ($a->status == 'ditolak'
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : 'bg-gray-100 text-gray-700'));
-                                    @endphp
-                                    <span class="px-1 py-0.5 text-xs font-semibold rounded-lg {{ $statusColor }}">
-                                        {{ ucfirst($a->status) }}
-                                    </span>
+                                    @if ($a->type === 'individual')
+                                        {{-- Individual: tampilkan leader_status --}}
+                                        @php
+                                            $statusColor =
+                                                $a->leader_status == 'menunggu'
+                                                    ? 'bg-yellow-100 text-yellow-700'
+                                                    : ($a->leader_status == 'diterima'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : ($a->leader_status == 'ditolak'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-gray-100 text-gray-700'));
+                                        @endphp
+                                        <span class="px-1 py-0.5 text-xs font-semibold rounded-lg {{ $statusColor }}">
+                                            {{ ucfirst($a->leader_status) }}
+                                        </span>
+                                    @else
+                                        {{-- Group: tampilkan ringkasan leader + members --}}
+                                        <div class="text-xs space-y-1">
+                                            <div>
+                                                @php
+                                                    $leaderColor =
+                                                        $a->leader_status == 'menunggu'
+                                                            ? 'bg-yellow-100 text-yellow-700'
+                                                            : ($a->leader_status == 'diterima'
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-red-100 text-red-700');
+                                                @endphp
+                                                <span class="font-semibold">K:</span>
+                                                <span class="px-1 py-0.5 rounded text-xs font-semibold ml-1 {{ $leaderColor }}">
+                                                    {{ ucfirst(substr($a->leader_status, 0, 1)) }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                @php
+                                                    $diterima = $a->members->where('status', 'diterima')->count();
+                                                    $total = $a->members->count();
+                                                @endphp
+                                                <span class="text-gray-700">A: <span class="font-semibold">{{ $diterima }}/{{ $total }}</span></span>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-1 py-0.5 border">
                                     <a href="{{ route('hrd.application.show', $a->id) }}" class="inline-flex items-center gap-1 text-blue-600 font-semibold hover:underline text-xs">

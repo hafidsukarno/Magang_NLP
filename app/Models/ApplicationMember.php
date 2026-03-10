@@ -10,7 +10,7 @@ class ApplicationMember extends Model
     use HasFactory;
 
     protected $fillable = [
-        'application_id','name','university','major','email','phone'
+        'application_id','name','university','major','email','phone','status','hrd_note'
     ];
 
     public function application() {

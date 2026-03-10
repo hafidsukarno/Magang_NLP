@@ -58,26 +58,91 @@
                                 <th class="border px-4 py-2">Nama</th>
                                 <th class="border px-4 py-2">Email</th>
                                 <th class="border px-4 py-2">Telepon</th>
+                                <th class="border px-4 py-2">Status</th>
+                                <th class="border px-4 py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if ($app->type === 'group' && $app->leader_name)
+                            @if ($app->type === 'individual')
+                                <!-- Individual: Tampilkan peserta dengan status dan aksi -->
                                 <tr class="bg-gray-50">
-                                    <td class="border px-4 py-2 font-medium">Ketua Tim</td>
+                                    <td class="border px-4 py-2 font-medium">Peserta</td>
                                     <td class="border px-4 py-2">{{ $app->leader_name }}</td>
                                     <td class="border px-4 py-2">{{ $app->leader_email ?? '-' }}</td>
                                     <td class="border px-4 py-2">{{ $app->leader_phone ?? '-' }}</td>
+                                    <td class="border px-4 py-2">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-lg
+                                            @if ($app->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
+                                            @elseif($app->leader_status == 'diterima') bg-green-100 text-green-700
+                                            @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
+                                            @else bg-gray-100 text-gray-700 @endif">
+                                            {{ ucfirst($app->leader_status) }}
+                                        </span>
+                                    </td>
+                                    <td class="border px-4 py-2">
+                                        <div class="flex gap-1 justify-center flex-wrap">
+                                            <button type="button" class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                onclick="approveLead()">Terima</button>
+                                            <button type="button" class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                                onclick="rejectLead()">Tolak</button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            @endif
+                            @else
+                                <!-- Group: Tampilkan leader -->
+                                @if ($app->leader_name)
+                                    <tr class="bg-gray-50">
+                                        <td class="border px-4 py-2 font-medium">Ketua Tim</td>
+                                        <td class="border px-4 py-2">{{ $app->leader_name }}</td>
+                                        <td class="border px-4 py-2">{{ $app->leader_email ?? '-' }}</td>
+                                        <td class="border px-4 py-2">{{ $app->leader_phone ?? '-' }}</td>
+                                        <td class="border px-4 py-2">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-lg
+                                                @if ($app->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
+                                                @elseif($app->leader_status == 'diterima') bg-green-100 text-green-700
+                                                @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
+                                                @else bg-gray-100 text-gray-700 @endif">
+                                                {{ ucfirst($app->leader_status) }}
+                                            </span>
+                                        </td>
+                                        <td class="border px-4 py-2">
+                                            <div class="flex gap-1 justify-center flex-wrap">
+                                                <button type="button" class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                    onclick="approveLead()">Terima</button>
+                                                <button type="button" class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                                    onclick="rejectLead()">Tolak</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
 
-                            @foreach ($app->members as $member)
-                                <tr>
-                                    <td class="border px-4 py-2 font-medium">Anggota</td>
-                                    <td class="border px-4 py-2">{{ $member->name }}</td>
-                                    <td class="border px-4 py-2">{{ $member->email ?? '-' }}</td>
-                                    <td class="border px-4 py-2">{{ $member->phone ?? '-' }}</td>
-                                </tr>
-                            @endforeach
+                                <!-- Group: Tampilkan members -->
+                                @foreach ($app->members as $member)
+                                    <tr>
+                                        <td class="border px-4 py-2 font-medium">Anggota</td>
+                                        <td class="border px-4 py-2">{{ $member->name }}</td>
+                                        <td class="border px-4 py-2">{{ $member->email ?? '-' }}</td>
+                                        <td class="border px-4 py-2">{{ $member->phone ?? '-' }}</td>
+                                        <td class="border px-4 py-2">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-lg
+                                                @if ($member->status == 'menunggu') bg-yellow-100 text-yellow-700
+                                                @elseif($member->status == 'diterima') bg-green-100 text-green-700
+                                                @elseif($member->status == 'ditolak') bg-red-100 text-red-700
+                                                @else bg-gray-100 text-gray-700 @endif">
+                                                {{ ucfirst($member->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="border px-4 py-2">
+                                            <div class="flex gap-1 justify-center flex-wrap">
+                                                <button type="button" class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                    onclick="approveMember({{ $member->id }})">Terima</button>
+                                                <button type="button" class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                                    onclick="rejectMember({{ $member->id }})">Tolak</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @endif
                         </tbody>
                     </table>
                 </div>
@@ -401,6 +466,103 @@
                 });
             }
         });
+
+        // Leader approval functions
+        function approveLead() {
+            Swal.fire({
+                icon: 'question',
+                title: 'Terima Leader',
+                text: 'Apakah Anda yakin ingin menerima leader ini?',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `{{ url('/hrd/leader') }}/{{ $app->id }}/update`;
+                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="diterima">`;
+                    form.style.display = 'none';
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        function rejectLead() {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tolak Leader',
+                html: `<textarea id="leadNote" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="Masukkan alasan penolakan..."></textarea>`,
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                didOpen: () => document.getElementById('leadNote').focus()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const note = document.getElementById('leadNote').value.trim();
+                    if (!note) {
+                        Swal.fire({ icon: 'error', title: 'Catatan Diperlukan', text: 'Silakan masukkan alasan penolakan', confirmButtonColor: '#ef4444' });
+                        return;
+                    }
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `{{ url('/hrd/leader') }}/{{ $app->id }}/update`;
+                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="ditolak"><input type="hidden" name="hrd_note" value="${note}">`;
+                    form.style.display = 'none';
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        function approveMember(memberId) {
+            Swal.fire({
+                icon: 'question',
+                title: 'Terima Member',
+                text: 'Apakah Anda yakin ingin menerima member ini?',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `{{ url('/hrd/member') }}/${memberId}/update`;
+                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="diterima">`;
+                    form.style.display = 'none';
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        function rejectMember(memberId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tolak Member',
+                html: `<textarea id="memberNote" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="Masukkan alasan penolakan..."></textarea>`,
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                didOpen: () => document.getElementById('memberNote').focus()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const note = document.getElementById('memberNote').value.trim();
+                    if (!note) {
+                        Swal.fire({ icon: 'error', title: 'Catatan Diperlukan', text: 'Silakan masukkan alasan penolakan', confirmButtonColor: '#ef4444' });
+                        return;
+                    }
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `{{ url('/hrd/member') }}/${memberId}/update`;
+                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="ditolak"><input type="hidden" name="hrd_note" value="${note}">`;
+                    form.style.display = 'none';
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
     </script>
 
 

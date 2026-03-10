@@ -200,5 +200,26 @@ class DepartmentController extends Controller
 
         return view('hrd.departments.accepted', compact('department', 'applications'));
     }
+
+    /**
+     * Delete a department and all related data
+     */
+    public function destroy(Department $department)
+    {
+        try {
+            // Delete related data
+            $department->periods()->delete();
+            $department->majors()->delete();
+            $department->skills()->delete();
+            $department->quotas()->delete();
+
+            // Delete department
+            $department->delete();
+
+            return back()->with('success', 'Departemen berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['general' => 'Gagal menghapus departemen: ' . $e->getMessage()]);
+        }
+    }
 }
 

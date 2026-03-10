@@ -24,6 +24,8 @@ class Application extends Model
         'file_path',
         'status',
         'hrd_note',
+        'leader_status',
+        'leader_note',
     ];
 
     protected $casts = [
