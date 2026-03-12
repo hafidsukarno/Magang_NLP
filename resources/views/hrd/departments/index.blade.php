@@ -85,7 +85,7 @@
                                     <div class="flex flex-wrap gap-1">
                                         @foreach($d->periods as $period)
                                             <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
-                                                {{ $period->weeks }} bln
+                                                {{ $period->duration }} bln
                                             </span>
                                         @endforeach
                                     </div>
@@ -129,7 +129,7 @@
 
                                 <!-- EDIT (modal) -->
                                 <a href="javascript:void(0)"
-                                    onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->periods->pluck('weeks')->toArray()) }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }})"
+                                    onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->periods->pluck('duration')->toArray()) }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }})"
                                     class="text-yellow-600 hover:text-yellow-800 transition" title="Edit Departemen">
                                     <i data-lucide="edit-2" class="w-5 h-5"></i>
                                 </a>
@@ -520,7 +520,7 @@
                         const input = document.createElement('input');
                         input.type = 'number';
                         input.name = 'periods[]';
-                        input.value = period.weeks;
+                        input.value = period.duration;
                         input.min = '1';
                         input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
                         periodsContainer.appendChild(input);

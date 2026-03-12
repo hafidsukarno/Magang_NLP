@@ -23,26 +23,26 @@
     </div>
 
     <!-- SUMMARY CARDS -->
-    <div class="grid grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-4 gap-4 mb-6">
         <div class="bg-blue-100 p-4 rounded-lg border-l-4 border-blue-500">
             <p class="text-gray-600 text-sm">Total Pengajuan</p>
             <p class="text-2xl font-bold text-blue-600">{{ $summary['total'] }}</p>
+            <p class="text-xs text-gray-600 mt-1">{{ $summary['total_individual'] }} Individual · {{ $summary['total_group'] }} Group</p>
         </div>
         <div class="bg-yellow-100 p-4 rounded-lg border-l-4 border-yellow-500">
-            <p class="text-gray-600 text-sm">Menunggu</p>
+            <p class="text-gray-600 text-sm">Menunggu Review</p>
             <p class="text-2xl font-bold text-yellow-600">{{ $summary['menunggu'] }}</p>
-        </div>
-        <div class="bg-purple-100 p-4 rounded-lg border-l-4 border-purple-500">
-            <p class="text-gray-600 text-sm">Diproses</p>
-            <p class="text-2xl font-bold text-purple-600">{{ $summary['diproses'] }}</p>
+            <p class="text-xs text-gray-600 mt-1">{{ $summary['menunggu_individual'] }} Individual · {{ $summary['menunggu_group'] }} Group</p>
         </div>
         <div class="bg-green-100 p-4 rounded-lg border-l-4 border-green-500">
             <p class="text-gray-600 text-sm">Diterima</p>
-            <p class="text-2xl font-bold text-green-600">{{ $summary['diterima'] }}</p>
+            <p class="text-2xl font-bold text-green-600">{{ $summary['diterima_count'] }}</p>
+            <p class="text-xs text-green-600 mt-1 font-semibold">{{ $summary['diterima'] }} aplikasi</p>
         </div>
         <div class="bg-red-100 p-4 rounded-lg border-l-4 border-red-500">
             <p class="text-gray-600 text-sm">Ditolak</p>
-            <p class="text-2xl font-bold text-red-600">{{ $summary['ditolak'] }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ $summary['ditolak_count'] }}</p>
+            <p class="text-xs text-red-600 mt-1 font-semibold">{{ $summary['ditolak'] }} aplikasi</p>
         </div>
     </div>
 
@@ -61,6 +61,7 @@
             <thead class="bg-gray-100">
                 <tr>
                     <th class="border p-2">Kode</th>
+                    <th class="border p-2">Tipe</th>
                     <th class="border p-2">Universitas</th>
                     <th class="border p-2">Departemen</th>
                     <th class="border p-2">Status</th>
@@ -72,18 +73,53 @@
                 @forelse($applications as $app)
                     <tr>
                         <td class="border p-2 font-mono text-sm">{{ $app->registration_code }}</td>
+                        <td class="border p-2">
+                            <span class="px-2 py-1 text-xs font-semibold rounded
+                                @if($app->type === 'individual') bg-purple-100 text-purple-700
+                                @else bg-blue-100 text-blue-700
+                                @endif">
+                                {{ ucfirst($app->type) }}
+                            </span>
+                        </td>
                         <td class="border p-2">{{ $app->university }}</td>
                         <td class="border p-2">{{ $app->department?->name ?? '-' }}</td>
                         <td class="border p-2">
-                            <span class="px-2 py-1 text-sm rounded text-white
-                                @if($app->status === 'menunggu') bg-yellow-500
-                                @elseif($app->status === 'diproses') bg-purple-500
-                                @elseif($app->status === 'diterima') bg-green-500
-                                @elseif($app->status === 'ditolak') bg-red-500
-                                @endif
-                            ">
-                                {{ ucfirst($app->status) }}
-                            </span>
+                            @if ($app->type === 'individual')
+                                {{-- Individual: tampilkan leader_status --}}
+                                <span class="px-2 py-1 text-sm rounded text-white
+                                    @if($app->leader_status === 'menunggu') bg-yellow-500
+                                    @elseif($app->leader_status === 'diterima') bg-green-500
+                                    @elseif($app->leader_status === 'ditolak') bg-red-500
+                                    @endif
+                                ">
+                                    {{ ucfirst($app->leader_status ?? 'menunggu') }}
+                                </span>
+                            @else
+                                {{-- Group: tampilkan ringkasan leader & members dengan breakdown --}}
+                                <div class="text-xs space-y-1">
+                                    <div>
+                                        <span class="font-semibold">K:</span>
+                                        <span class="px-2 py-0.5 rounded text-xs font-semibold
+                                            @if($app->leader_status === 'menunggu') bg-yellow-100 text-yellow-700
+                                            @elseif($app->leader_status === 'diterima') bg-green-100 text-green-700
+                                            @elseif($app->leader_status === 'ditolak') bg-red-100 text-red-700
+                                            @endif">
+                                            {{ ucfirst(substr($app->leader_status ?? 'menunggu', 0, 1)) }}
+                                        </span>
+                                    </div>
+                                    @php
+                                        $diterima = $app->members->where('status', 'diterima')->count();
+                                        $ditolak = $app->members->where('status', 'ditolak')->count();
+                                        $total = $app->members->count();
+                                    @endphp
+                                    <div class="text-gray-700">
+                                        A: <span class="font-semibold">{{ $diterima }}/{{ $total }}</span>
+                                        @if($ditolak > 0)
+                                            <span class="text-red-600"> -{{ $ditolak }} tolak</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </td>
                         <td class="border p-2 text-sm">{{ $app->created_at->format('d/m/Y') }}</td>
                         <td class="border p-2">
@@ -94,7 +130,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="border p-4 text-center text-gray-500">
+                        <td colspan="7" class="border p-4 text-center text-gray-500">
                             Belum ada pengajuan. <a href="{{ route('apply.form') }}" class="text-blue-600 hover:underline">Buat sekarang</a>
                         </td>
                     </tr>

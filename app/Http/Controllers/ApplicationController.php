@@ -21,38 +21,87 @@ class ApplicationController extends Controller
 
     public function create()
     {
-        $departments = Department::all();
+        $departments = Department::with('periods')->get()->map(function($dept) {
+            // Ambil durasi dari period pertama
+            $duration = $dept->periods->first()?->duration ?? 5;
+            return [
+                'id' => $dept->id,
+                'name' => $dept->name,
+                'duration' => $duration,
+            ];
+        });
         return view('mahasiswa.create', compact('departments'));
     }
 
     public function store(Request $r)
     {
+        // Function helper untuk hitung durasi dalam bulan
+        $calculateMonths = function(\DateTime $start, \DateTime $end) {
+            $months = $end->diff($start)->m;
+            $years = $end->diff($start)->y;
+            return ($years * 12) + $months;
+        };
+
+        // Get max duration dari department_periods
+        $maxDuration = 5; // default fallback
+        if ($r->department_id) {
+            $dept = Department::with('periods')->find($r->department_id);
+            $maxDuration = $dept?->periods->first()?->duration ?? 5;
+        }
+
+        // Validasi periode
+        $periodStart = \DateTime::createFromFormat('Y-m-d', $r->period_start);
+        $periodEnd = \DateTime::createFromFormat('Y-m-d', $r->period_end);
+        
+        if ($periodStart && $periodEnd) {
+            $applicationMonths = $calculateMonths($periodStart, $periodEnd);
+        } else {
+            $applicationMonths = 0;
+        }
+
         // ======================
         // VALIDASI FORM
         // ======================
-        $r->validate([
-            'type' => 'required|in:individual,group',
-
-            'leader_name' => 'required|string|max:255',
-            'leader_email' => 'required|email',
-            'leader_phone' => 'required|string|max:20',
-
-            'university' => 'required|string|max:255',
-            'major' => 'required|string|max:255',
-
-            'department_id' => 'nullable|exists:departments,id',
-            'duration' => 'required|numeric|max:5',
-            'period_start' => 'required|date',
-            'period_end' => 'required|date|after_or_equal:period_start',
-
-            'file' => 'required|mimes:pdf|max:10240',
-
-        ], [
-            // messages...
+        $msgs = [
             'period_start.required' => 'Tanggal mulai magang wajib diisi.',
             'period_end.required' => 'Tanggal selesai magang wajib diisi.',
             'period_end.after_or_equal' => 'Tanggal selesai harus setelah atau sama dengan tanggal mulai.',
-        ]);
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($r->all(), [
+            'type' => 'required|in:individual,group',
+            'leader_name' => 'required|string|max:255',
+            'leader_email' => 'required|email',
+            'leader_phone' => 'required|string|max:20',
+            'university' => 'required|string|max:255',
+            'major' => 'required|string|max:255',
+            'department_id' => 'nullable|exists:departments,id',
+            'duration' => 'nullable|numeric',
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after_or_equal:period_start',
+            'file' => 'required|mimes:pdf|max:10240',
+        ], $msgs);
+
+        // Tambah validasi custom: durasi pengajuan tidak boleh melebihi max duration
+        $validator->after(function ($validator) use ($applicationMonths, $maxDuration) {
+            if ($applicationMonths > $maxDuration) {
+                $validator->errors()->add(
+                    'period_end',
+                    "Durasi pengajuan Anda ({$applicationMonths} bulan) melebihi durasi maksimal ({$maxDuration} bulan)."
+                );
+            }
+        });
+
+        if ($validator->fails()) {
+            return back()->withInput()->withErrors($validator->errors());
+        }
+
+        // Auto-set duration dari department_periods
+        $duration = $r->duration;
+        if ($r->department_id) {
+            $dept = Department::with('periods')->find($r->department_id);
+            $duration = $dept?->periods->first()?->duration ?? 5;
+        }
 
         // generate registration code
         do {
@@ -131,7 +180,7 @@ class ApplicationController extends Controller
                 'university' => $r->university,
                 'major' => $r->major,
                 'department_id' => $departmentId,
-                'duration' => $r->duration,
+                'duration' => $duration,
                 'period_start' => $periodStart,
                 'period_end' => $periodEnd,
                 'file_path' => $path,
@@ -182,19 +231,84 @@ class ApplicationController extends Controller
     {
         $user = auth()->user();
         
-        // Get student's applications
+        // Get student's applications with members
         $applications = Application::where('user_id', $user->id)
+            ->with('members')
             ->latest()
             ->paginate(5);
 
-        // Get summary
+        // Get summary - hitung berdasarkan leader_status dan member status
+        $allApps = Application::where('user_id', $user->id)
+            ->with('members')
+            ->get();
+
         $summary = [
-            'total' => Application::where('user_id', $user->id)->count(),
-            'menunggu' => Application::where('user_id', $user->id)->where('status', 'menunggu')->count(),
-            'diproses' => Application::where('user_id', $user->id)->where('status', 'diproses')->count(),
-            'diterima' => Application::where('user_id', $user->id)->where('status', 'diterima')->count(),
-            'ditolak' => Application::where('user_id', $user->id)->where('status', 'ditolak')->count(),
+            'total' => $allApps->count(),
+            'total_individual' => 0,
+            'total_group' => 0,
+            'menunggu' => 0,
+            'menunggu_individual' => 0,
+            'menunggu_group' => 0,
+            'diterima' => 0,
+            'diterima_individual' => 0,
+            'diterima_group' => 0,
+            'diterima_count' => 0, // jumlah orang yang diterima
+            'ditolak' => 0,
+            'ditolak_count' => 0, // jumlah orang yang ditolak
         ];
+
+        foreach ($allApps as $app) {
+            if ($app->type === 'individual') {
+                $summary['total_individual']++;
+                // Individual: tergantung leader_status
+                if ($app->leader_status == 'menunggu') {
+                    $summary['menunggu']++;
+                    $summary['menunggu_individual']++;
+                } elseif ($app->leader_status == 'diterima') {
+                    $summary['diterima']++;
+                    $summary['diterima_individual']++;
+                    $summary['diterima_count']++;
+                } elseif ($app->leader_status == 'ditolak') {
+                    $summary['ditolak']++;
+                    $summary['ditolak_count']++;
+                }
+            } else {
+                // Group
+                $summary['total_group']++;
+                $allMembersReviewed = $app->members->every(fn($m) => $m->status !== 'menunggu') 
+                    && $app->leader_status !== 'menunggu';
+                
+                if (!$allMembersReviewed) {
+                    $summary['menunggu']++;
+                    $summary['menunggu_group']++;
+                } 
+                
+                // Count diterima: ketua + anggota yang diterima
+                $diterima_people = 0;
+                if ($app->leader_status == 'diterima') {
+                    $diterima_people++;
+                }
+                $diterima_people += $app->members->where('status', 'diterima')->count();
+                
+                if ($diterima_people > 0) {
+                    $summary['diterima']++;
+                    $summary['diterima_group']++;
+                    $summary['diterima_count'] += $diterima_people;
+                }
+                
+                // Count ditolak: ketua (jika ditolak) + anggota yang ditolak
+                $ditolak_people = 0;
+                if ($app->leader_status == 'ditolak') {
+                    $ditolak_people++;
+                }
+                $ditolak_people += $app->members->where('status', 'ditolak')->count();
+                
+                if ($ditolak_people > 0) {
+                    $summary['ditolak']++;
+                    $summary['ditolak_count'] += $ditolak_people;
+                }
+            }
+        }
 
         return view('mahasiswa.dashboard', compact('applications', 'summary'));
     }
@@ -209,18 +323,47 @@ class ApplicationController extends Controller
         $search = request('search');
         $status = request('status');
 
-        $applications = Application::where('user_id', $user->id)
+        $allApplications = Application::where('user_id', $user->id)
+            ->with('members')
             ->when($search, function($q) use ($search) {
                 $q->where('leader_name', 'like', "%$search%")
                   ->orWhere('registration_code', 'like', "%$search%")
                   ->orWhere('university', 'like', "%$search%");
             })
-            ->when($status && $status !== 'all', function($q) use ($status) {
-                $q->where('status', $status);
-            })
             ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->get();
+
+        // Filter by status menggunakan logic baru
+        if ($status && $status !== 'all') {
+            $allApplications = $allApplications->filter(function($app) use ($status) {
+                if ($app->type === 'individual') {
+                    return $app->leader_status === $status;
+                } else {
+                    // Group: filter berdasarkan apakah ada members dengan status tertentu
+                    if ($status === 'menunggu') {
+                        return $app->leader_status === 'menunggu' || $app->members->where('status', 'menunggu')->count() > 0;
+                    } elseif ($status === 'diterima') {
+                        return $app->leader_status === 'diterima' && $app->members->where('status', 'diterima')->count() > 0;
+                    } elseif ($status === 'ditolak') {
+                        return $app->leader_status === 'ditolak' || $app->members->where('status', 'ditolak')->count() > 0;
+                    }
+                }
+                return true;
+            });
+        }
+
+        // Manually paginate
+        $page = request('page', 1);
+        $perPage = 10;
+        $applications = new \Illuminate\Pagination\Paginator(
+            $allApplications->forPage($page, $perPage)->values(),
+            $perPage,
+            $page,
+            [
+                'path' => route('mahasiswa.applications.index'),
+                'query' => request()->query(),
+            ]
+        );
 
         return view('mahasiswa.applications', compact('applications'));
     }

@@ -44,13 +44,13 @@ class DepartmentController extends Controller
 
         $department = Department::create($request->only('name', 'quota'));
 
-        // Simpan periode magang (4, 5, 6 minggu)
+        // Simpan periode magang (durasi dalam bulan)
         if ($request->filled('periods')) {
             foreach ($request->periods as $index => $weeks) {
                 if ($weeks) {
                     DepartmentPeriod::create([
                         'department_id' => $department->id,
-                        'weeks' => $weeks,
+                        'duration' => $weeks,
                         'position' => $index,
                     ]);
                 }
@@ -126,7 +126,7 @@ class DepartmentController extends Controller
                 if ($weeks) {
                     DepartmentPeriod::create([
                         'department_id' => $department->id,
-                        'weeks' => $weeks,
+                        'duration' => $weeks,
                         'position' => $index,
                     ]);
                 }

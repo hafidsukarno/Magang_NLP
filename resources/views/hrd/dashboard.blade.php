@@ -102,13 +102,15 @@
             <div
                 class="bg-blue-50 shadow-md rounded-xl p-3 border border-blue-200 flex flex-col items-center justify-center">
                 <h4 class="text-blue-700 text-xs md:text-sm font-semibold mb-1">Statistik Lolos / Tidak Lolos</h4>
-                <canvas id="miniStatistikChart" width="80" height="80"></canvas>
+                <div style="width: 80px; height: 80px;">
+                    <canvas id="miniStatistikChart"></canvas>
+                </div>
                 <div class="flex gap-2 mt-2 text-xs md:text-sm font-medium text-blue-700">
                     <div class="flex items-center gap-1">
-                        <span class="inline-block w-2 h-2 bg-blue-600 rounded-full"></span> Lolos: {{ $lolos_count }}
+                        <span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span> Lolos: {{ $lolos_count }}
                     </div>
                     <div class="flex items-center gap-1">
-                        <span class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span> Tidak Lolos:
+                        <span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span> Tidak Lolos:
                         {{ $tidak_lolos_count }}
                     </div>
                 </div>
@@ -414,29 +416,26 @@
     <script>
         const ctxMini = document.getElementById('miniStatistikChart').getContext('2d');
         const miniStatistikChart = new Chart(ctxMini, {
-            type: 'bar',
+            type: 'doughnut',
             data: {
                 labels: ['Lolos', 'Tidak Lolos'],
                 datasets: [{
-                    label: 'Jumlah',
                     data: [{{ $lolos_count }}, {{ $tidak_lolos_count }}],
-                    backgroundColor: ['#3b82f6', '#ef4444'],
-                    borderRadius: 3,
+                    backgroundColor: ['#22c55e', '#ef4444'],
+                    borderColor: ['#16a34a', '#dc2626'],
+                    borderWidth: 2,
                 }]
             },
             options: {
-                responsive: false,
+                responsive: true,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: function(context) { return context.parsed.y + ' Orang'; }
+                            label: function(context) { return context.label + ': ' + context.parsed + ' Orang'; }
                         }
                     }
-                },
-                scales: {
-                    x: { display: false, grid: { display: false } },
-                    y: { display: false, beginAtZero: true, grid: { display: false } }
                 }
             }
         });

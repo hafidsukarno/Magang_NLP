@@ -32,14 +32,31 @@
                     <span
                         class="@if ($app->status == 'diterima') text-green-600
                                  @elseif($app->status == 'ditolak') text-red-600
+                                 @elseif($app->status == 'selesai') text-blue-600
                                  @else text-yellow-600 @endif font-semibold">
                         {{ ucfirst($app->status) }}
                     </span>
                 </p>
+                <p><strong>Durasi Maksimal:</strong> {{ $app->duration }} Bulan</p>
                 <p><strong>Periode Magang:</strong>
                     @if ($app->period_start && $app->period_end)
                         {{ \Carbon\Carbon::parse($app->period_start)->format('d M Y') }} —
                         {{ \Carbon\Carbon::parse($app->period_end)->format('d M Y') }}
+                    @else
+                        -
+                    @endif
+                </p>
+                <p><strong>Durasi Pengajuan:</strong>
+                    @if ($app->period_start && $app->period_end)
+                        @php
+                            $startDate = \Carbon\Carbon::parse($app->period_start);
+                            $endDate = \Carbon\Carbon::parse($app->period_end);
+                            $months = $endDate->diff($startDate)->m;
+                            $years = $endDate->diff($startDate)->y;
+                            $days = $endDate->diff($startDate)->d;
+                            $totalMonths = ($years * 12) + $months;
+                        @endphp
+                        <span class="text-blue-600 font-semibold">{{ $totalMonths }} Bulan {{ $days }} Hari</span>
                     @else
                         -
                     @endif

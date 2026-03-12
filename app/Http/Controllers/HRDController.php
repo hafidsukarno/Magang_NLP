@@ -305,6 +305,9 @@ class HRDController extends Controller {
             }
             $member->save();
 
+            // Sync aplikasi status: jika semua (leader + members) sudah punya keputusan, ubah status ke 'selesai'
+            $this->syncApplicationStatus($app);
+
             DB::commit();
             return back()->with('success', 'Status member berhasil diperbarui.');
         } catch (\Throwable $ex) {
@@ -409,12 +412,48 @@ class HRDController extends Controller {
             }
             $app->save();
 
+            // Sync aplikasi status: jika semua (leader + members) sudah punya keputusan, ubah status ke 'selesai'
+            $this->syncApplicationStatus($app);
+
             DB::commit();
             return back()->with('success', 'Status leader berhasil diperbarui.');
         } catch (\Throwable $ex) {
             DB::rollBack();
             Log::error('Leader update error: '.$ex->getMessage());
             return back()->withErrors(['general' => 'Terjadi kesalahan, silakan coba lagi.']);
+        }
+    }
+
+    /**
+     * Sync status aplikasi:
+     * - Jika tipe individual: check leader status
+     * - Jika tipe group: check leader + semua members
+     * - Jika semua sudah punya keputusan (tidak ada 'menunggu'), ubah app status menjadi 'selesai'
+     */
+    private function syncApplicationStatus(Application $app) {
+        $app = $app->fresh(['members']); // Reload data
+
+        $allDecided = true;
+
+        // Check leader
+        if ($app->leader_status === 'menunggu') {
+            $allDecided = false;
+        }
+
+        // Check members (jika grup)
+        if ($app->type === 'group' && $allDecided) {
+            foreach ($app->members as $member) {
+                if ($member->status === 'menunggu') {
+                    $allDecided = false;
+                    break;
+                }
+            }
+        }
+
+        // Jika semua sudah ada keputusan, ubah status aplikasi menjadi 'selesai'
+        if ($allDecided && $app->status === 'menunggu') {
+            $app->status = 'selesai';
+            $app->save();
         }
     }
 }

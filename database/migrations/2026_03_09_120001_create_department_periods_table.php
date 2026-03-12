@@ -11,12 +11,12 @@ class CreateDepartmentPeriodsTable extends Migration
         Schema::create('department_periods', function (Blueprint $table) {
             $table->id();
             $table->foreignId('department_id')->constrained('departments')->onDelete('cascade');
-            $table->integer('weeks'); // 4, 5, 6, atau custom value
-            $table->string('description')->nullable(); // Misal: "4 minggu - Kategori A"
+            $table->integer('duration'); // Durasi magang dalam bulan: 2, 3, 4, 5, dst
+            $table->string('description')->nullable(); // Misal: "3 bulan - Batch A"
             $table->integer('position')->default(0); // Untuk sorting
             $table->timestamps();
             
-            $table->unique(['department_id', 'weeks']);
+            $table->unique(['department_id', 'duration']);
         });
     }
 

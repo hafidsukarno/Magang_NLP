@@ -45,13 +45,13 @@
                     <div>
                         <label class="block font-semibold mb-1 text-gray-700 flex items-center gap-2">
                             <i data-lucide="building" class="w-5 h-5 text-gray-500"></i>
-                            Departemen Tujuan (Opsional)
+                            Departemen Tujuan
                         </label>
                         <select name="department_id" id="department_id"
                             class="border-gray-300 rounded-lg p-3 w-full focus:ring-blue-500 focus:border-blue-500 shadow-sm">
                             <option value="">-- Pilih --</option>
                             @foreach ($departments as $d)
-                                <option value="{{ $d->id }}" {{ old('department_id') == $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
+                                <option value="{{ $d['id'] }}" data-duration="{{ $d['duration'] }}" {{ old('department_id') == $d['id'] ? 'selected' : '' }}>{{ $d['name'] }}</option>
                             @endforeach
                         </select>
                         @error('department_id')
@@ -137,11 +137,16 @@
                     <div>
                         <label class="block font-semibold mb-1 text-gray-700 flex items-center gap-2">
                             <i data-lucide="clock" class="w-5 h-5 text-gray-500"></i>
-                            Durasi (max. 5 bulan) <span class="text-red-500">*</span>
+                            Durasi Maks Magang <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" name="duration" id="duration" value="{{ old('duration') }}"
-                            class="border-gray-300 rounded-lg p-3 w-full shadow-sm @error('duration') border-red-500 @enderror">
+                        <!-- Hidden input untuk submit nilai numerik -->
+                        <input type="hidden" name="duration" id="duration_value">
+
+                        <!-- Display field -->
+                        <input type="text" id="duration" value="{{ old('duration') }}"
+                            readonly
+                            class="border-gray-300 rounded-lg p-3 w-full shadow-sm bg-gray-100 cursor-not-allowed @error('duration') border-red-500 @enderror">
 
                         @error('duration')
                             <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
@@ -170,6 +175,11 @@
                         @error('period_end')
                             <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    <!-- Periode Info (client-side calculation) -->
+                    <div class="md:col-span-2">
+                        <div id="periodInfo" class="p-3 rounded-lg text-sm hidden"></div>
                     </div>
 
                     <!-- Quota Info (client-side) -->
@@ -219,6 +229,8 @@
                                                 <button type="button" class="text-red-600 hover:text-red-800 removeMemberBtn">Hapus</button>
                                             </div>
                                             <input type="text" name="members[{{ $idx }}][name]" value="{{ $m['name'] ?? '' }}" placeholder="Nama" class="border-gray-300 rounded-lg p-2 w-full">
+                                            <input type="email" name="members[{{ $idx }}][email]" value="{{ $m['email'] ?? '' }}" placeholder="Email" class="border-gray-300 rounded-lg p-2 w-full">
+                                            <input type="text" name="members[{{ $idx }}][phone]" value="{{ $m['phone'] ?? '' }}" placeholder="No. Telepon" class="border-gray-300 rounded-lg p-2 w-full">
                                         </div>
                                     @endforeach
                                 @endif
@@ -252,6 +264,8 @@
             const addMemberBtn = document.getElementById('addMemberBtn');
 
             const departmentEl = document.getElementById('department_id');
+            const durationEl = document.getElementById('duration');
+            const durationValueEl = document.getElementById('duration_value');
             const periodStartEl = document.getElementById('period_start');
             const periodEndEl = document.getElementById('period_end');
             const quotaInfo = document.getElementById('quotaInfo');
@@ -270,6 +284,23 @@
                 }
             });
 
+            // Auto-fill durasi saat departemen dipilih (dari database)
+            departmentEl.addEventListener('change', () => {
+                const selectedOption = departmentEl.options[departmentEl.selectedIndex];
+                if (departmentEl.value && selectedOption.dataset.duration) {
+                    durationValueEl.value = selectedOption.dataset.duration; // hidden field: just number
+                    durationEl.value = selectedOption.dataset.duration + ' bulan'; // display: with "bulan"
+                } else {
+                    durationValueEl.value = '';
+                    durationEl.value = '';
+                }
+            });
+            
+            // Trigger change event saat load halaman jika ada old value
+            if (departmentEl.value) {
+                departmentEl.dispatchEvent(new Event('change'));
+            }
+
             // Tambah anggota kelompok
             addMemberBtn.addEventListener('click', () => {
                 const idx = membersList.children.length;
@@ -282,6 +313,8 @@
                         <button type="button" class="text-red-600 hover:text-red-800 removeMemberBtn">Hapus</button>
                     </div>
                     <input type="text" name="members[${idx}][name]" placeholder="Nama" class="border-gray-300 rounded-lg p-2 w-full">
+                    <input type="email" name="members[${idx}][email]" placeholder="Email" class="border-gray-300 rounded-lg p-2 w-full">
+                    <input type="text" name="members[${idx}][phone]" placeholder="No. Telepon" class="border-gray-300 rounded-lg p-2 w-full">
                 `;
 
                 membersList.appendChild(memberDiv);
@@ -321,6 +354,66 @@
                 }
             });
 
+            // Calculate and validate period (months and days)
+            const periodInfo = document.getElementById('periodInfo');
+
+            function calculatePeriodInfo() {
+                periodInfo.classList.add('hidden');
+                periodInfo.innerHTML = '';
+                submitBtn.disabled = false;
+
+                const startStr = periodStartEl.value;
+                const endStr = periodEndEl.value;
+                const maxDuration = parseInt(durationValueEl.value) || 0;
+
+                if (!startStr || !endStr) return;
+
+                const startDate = new Date(startStr);
+                const endDate = new Date(endStr);
+
+                // Validasi: end date harus >= start date
+                if (endDate < startDate) {
+                    periodInfo.classList.remove('hidden');
+                    periodInfo.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                    periodInfo.innerHTML = '<strong>❌ Kesalahan:</strong> Tanggal selesai harus sama atau setelah tanggal mulai.';
+                    submitBtn.disabled = true;
+                    return;
+                }
+
+                // Hitung bulan dan hari
+                let months = endDate.getMonth() - startDate.getMonth() + (12 * (endDate.getFullYear() - startDate.getFullYear()));
+                let days = endDate.getDate() - startDate.getDate();
+
+                if (days < 0) {
+                    months--;
+                    const prevMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 0);
+                    days += prevMonth.getDate();
+                }
+
+                // Validasi: durasi tidak boleh melebihi maksimal
+                if (maxDuration > 0 && months > maxDuration) {
+                    periodInfo.classList.remove('hidden');
+                    periodInfo.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                    periodInfo.innerHTML = `<strong>❌ Exceeds Max Duration:</strong> Durasi maksimal ${maxDuration} bulan, Anda memilih ${months} bulan ${days} hari.`;
+                    submitBtn.disabled = true;
+                    return;
+                }
+
+                // Durasi OK
+                periodInfo.classList.remove('hidden');
+                periodInfo.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+                periodInfo.innerHTML = `<strong>✓ Durasi Pengajuan:</strong> ${months} bulan ${days} hari (Maks: ${maxDuration} bulan)`;
+                submitBtn.disabled = false;
+            }
+
+            periodStartEl.addEventListener('change', calculatePeriodInfo);
+            periodEndEl.addEventListener('change', calculatePeriodInfo);
+
+            // If page loaded with values, calculate once
+            if (periodStartEl.value && periodEndEl.value) {
+                calculatePeriodInfo();
+            }
+
             // Quota check helper (AJAX)
             let quotaCheckTimer = null;
             const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
@@ -337,8 +430,7 @@
             }
 
             async function checkQuota() {
-                // reset
-                submitBtn.disabled = false;
+                // Reset only quota message
                 clearQuotaMessage();
 
                 const dep = departmentEl.value;
@@ -346,6 +438,9 @@
                 const pend = periodEndEl.value;
 
                 if (!dep || !pstart || !pend) return;
+
+                // Skip quota check if period validation already failed
+                if (submitBtn.disabled) return;
 
                 // Simple client-side validation: period_end >= period_start
                 if (new Date(pend) < new Date(pstart)) {
