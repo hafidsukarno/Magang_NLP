@@ -202,7 +202,7 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('departments.store') }}" id="addForm">>>
+            <form method="POST" action="{{ route('departments.store') }}" id="addForm">
                 @csrf
 
                 @if($errors->any())
@@ -231,7 +231,7 @@
                 <!-- PERIODE MAGANG -->
                 <div class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
                     <label class="block text-gray-700 font-medium mb-2">Waktu Periode Magang (Bulan)</label>
-                    <input type="number" name="periods[]" id="addPeriod" min="1" placeholder="Contoh: 3, 4, 5, atau 6 bulan"
+                    <input type="number" name="periods[]" id="addPeriod" min="1" placeholder="Contoh: 2, 3, 4, 6 bulan"
                         class="w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200">
                     
                     <div class="grid grid-cols-2 gap-2">
@@ -239,14 +239,18 @@
                             <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
                             <input type="date" name="period_start" id="addPeriodStart"
                                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 April 2026</p>
                         </div>
                         <div>
                             <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
                             <input type="date" name="period_end" id="addPeriodEnd"
                                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 Juni 2026 (2 bulan)</p>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">Durasi harus sesuai dengan jumlah bulan di atas ±15 hari</p>
+                    <p class="text-xs text-gray-600 mt-2 bg-white p-2 rounded border border-blue-300">
+                        📝 <strong>Cara menghitung:</strong> Jika periode 2 bulan dari 1 April, maka berakhir 1 Juni. Toleransi ±15 hari.
+                    </p>
                 </div>
 
                 <!-- JURUSAN YANG RELEVAN -->
@@ -332,14 +336,18 @@
                             <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
                             <input type="date" name="period_start" id="editPeriodStart"
                                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 April 2026</p>
                         </div>
                         <div>
                             <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
                             <input type="date" name="period_end" id="editPeriodEnd"
                                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 Juni 2026 (2 bulan)</p>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">Durasi harus sesuai dengan jumlah bulan di atas ±15 hari</p>
+                    <p class="text-xs text-gray-600 mt-2 bg-white p-2 rounded border border-blue-300">
+                        📝 <strong>Cara menghitung:</strong> Jika periode 2 bulan dari 1 April, maka berakhir 1 Juni. Toleransi ±15 hari.
+                    </p>
                 </div>
 
                 <!-- JURUSAN YANG RELEVAN -->

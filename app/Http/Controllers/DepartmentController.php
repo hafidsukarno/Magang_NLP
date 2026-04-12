@@ -66,6 +66,13 @@ class DepartmentController extends Controller
                     $startDate = \Carbon\Carbon::parse($request->period_start);
                     $endDate = \Carbon\Carbon::parse($request->period_end);
                     
+                    // VALIDASI: Start date harus lebih kecil dari end date
+                    if ($startDate->greaterThanOrEqualTo($endDate)) {
+                        return back()->withErrors([
+                            'period_end' => "Tanggal mulai harus LEBIH AWAL dari tanggal berakhir!"
+                        ])->withInput();
+                    }
+                    
                     // Hitung hari dan konversi ke bulan (1 bulan = 30.44 hari rata-rata)
                     $daysInPeriod = $endDate->diffInDays($startDate);
                     $monthsFromDays = $daysInPeriod / 30.44;
@@ -75,17 +82,18 @@ class DepartmentController extends Controller
                         'start' => $request->period_start,
                         'end' => $request->period_end,
                         'days' => $daysInPeriod,
-                        'months_from_days' => $monthsFromDays
+                        'months_from_days' => number_format($monthsFromDays, 2)
                     ]);
                     
                     // Toleransi ±0.5 bulan (±15 hari) - lebih fleksibel
                     if (abs($monthsFromDays - $period) > 0.5) {
+                        $diff = $period - $monthsFromDays;
                         return back()->withErrors([
-                            'period_end' => "Durasi tidak sesuai: {$daysInPeriod} hari = " . number_format($monthsFromDays, 2) . " bln vs durasi {$period} bln. Toleransi ±15 hari."
+                            'period_end' => "Durasi tidak cocok: dari {$request->period_start} ke {$request->period_end} = {$daysInPeriod} hari (" . number_format($monthsFromDays, 1) . " bln), tapi periode {$period} bln. Perbedaan " . number_format(abs($diff), 1) . " bln."
                         ])->withInput();
                     }
                 } catch (\Exception $e) {
-                    return back()->withErrors(['period_end' => 'Format tanggal tidak valid.'])->withInput();
+                    return back()->withErrors(['period_end' => 'Format tanggal tidak valid: ' . $e->getMessage()])->withInput();
                 }
             }
         }
@@ -190,18 +198,26 @@ class DepartmentController extends Controller
                     $startDate = \Carbon\Carbon::parse($request->period_start);
                     $endDate = \Carbon\Carbon::parse($request->period_end);
                     
+                    // VALIDASI: Start date harus lebih kecil dari end date
+                    if ($startDate->greaterThanOrEqualTo($endDate)) {
+                        return back()->withErrors([
+                            'period_end' => "Tanggal mulai harus LEBIH AWAL dari tanggal berakhir!"
+                        ])->withInput();
+                    }
+                    
                     // Hitung hari dan konversi ke bulan (1 bulan = 30.44 hari rata-rata)
                     $daysInPeriod = $endDate->diffInDays($startDate);
                     $monthsFromDays = $daysInPeriod / 30.44;
                     
                     // Toleransi ±0.5 bulan (±15 hari) - lebih fleksibel
                     if (abs($monthsFromDays - $period) > 0.5) {
+                        $diff = $period - $monthsFromDays;
                         return back()->withErrors([
-                            'period_end' => "Durasi tidak sesuai: {$daysInPeriod} hari = " . number_format($monthsFromDays, 2) . " bln vs durasi {$period} bln. Toleransi ±15 hari."
+                            'period_end' => "Durasi tidak cocok: dari {$request->period_start} ke {$request->period_end} = {$daysInPeriod} hari (" . number_format($monthsFromDays, 1) . " bln), tapi periode {$period} bln. Perbedaan " . number_format(abs($diff), 1) . " bln."
                         ])->withInput();
                     }
                 } catch (\Exception $e) {
-                    return back()->withErrors(['period_end' => 'Format tanggal tidak valid.'])->withInput();
+                    return back()->withErrors(['period_end' => 'Format tanggal tidak valid: ' . $e->getMessage()])->withInput();
                 }
             }
         }
