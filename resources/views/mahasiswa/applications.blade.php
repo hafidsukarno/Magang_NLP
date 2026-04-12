@@ -41,9 +41,23 @@
         </form>
 
         <!-- TOMBOL BUAT PENGAJUAN -->
-        <a href="{{ route('apply.form') }}" class="px-4 py-2 bg-green-600 text-white rounded inline-block hover:bg-green-700 font-semibold">
-            + Buat Pengajuan Baru
-        </a>
+        <div x-data="{ openMenu: false }" class="relative inline-block">
+            <button @click="openMenu = !openMenu" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2 font-semibold">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Buat Pengajuan Baru
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+            <div @click.outside="openMenu = false" x-show="openMenu" x-transition class="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                <a href="{{ route('apply.upload-surat', ['type' => 'individual']) }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+                    <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>
+                    Individu
+                </a>
+                <a href="{{ route('apply.upload-surat', ['type' => 'group']) }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 border-t border-gray-200">
+                    <i data-lucide="users" class="w-4 h-4 inline mr-2"></i>
+                    Kelompok
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- TABEL PENGAJUAN -->

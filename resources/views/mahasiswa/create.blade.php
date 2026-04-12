@@ -15,31 +15,21 @@
                 <div class="mb-10 pb-4 border-b border-gray-200">
                     <h3 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
                         <i data-lucide="clipboard-list" class="w-7 h-7 text-gray-600 hidden md:inline-block"></i>
-                        Form Pengajuan Magang
+                        Form Pengajuan Magang - {{ $type === 'group' ? 'Kelompok' : 'Individu' }}
                     </h3>
                 <p class="text-gray-500 mt-2 text-sm sm:text-base">
                     Silakan lengkapi data berikut dengan benar untuk pengajuan magang Anda.
                 </p>
-            </div>
+                </div>
 
             <!-- FORM START -->
             <form id="applyForm" action="{{ route('apply.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                 @csrf
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Hidden type field -->
+                <input type="hidden" name="type" value="{{ $type }}">
 
-                    <!-- Tipe -->
-                    <div>
-                        <label class="block font-semibold mb-1 text-gray-700 flex items-center gap-2">
-                            <i data-lucide="users" class="w-5 h-5 text-gray-500"></i>
-                            Tipe Pendaftaran <span class="text-red-500">*</span>
-                        </label>
-                        <select name="type" id="type"
-                            class="border-gray-300 rounded-lg p-3 w-full focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-                            <option value="individual" {{ old('type') == 'individual' ? 'selected' : '' }}>Individu</option>
-                            <option value="group" {{ old('type') == 'group' ? 'selected' : '' }}>Kelompok</option>
-                        </select>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                     <!-- Departemen -->
                     <div>
@@ -63,11 +53,11 @@
                     <div>
                         <label id="labelLeader" class="block font-semibold mb-1 text-gray-700 flex items-center gap-2">
                             <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
-                            Nama / Ketua <span class="text-red-500">*</span>
+                            {{ $type === 'group' ? 'Nama Ketua' : 'Nama' }} <span class="text-red-500">*</span>
                         </label>
                         <input type="text" name="leader_name" id="leader_name"
                             class="border-gray-300 rounded-lg p-3 w-full shadow-sm @error('leader_name') border-red-500 @enderror"
-                            value="{{ old('leader_name') }}">
+                            value="{{ old('leader_name', $ocrData['nama'] ?? '') }}">
                         @error('leader_name')
                             <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -125,7 +115,7 @@
                             Program Studi <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" name="major" id="major" value="{{ old('major') }}"
+                        <input type="text" name="major" id="major" value="{{ old('major', $ocrData['major'] ?? '') }}"
                             class="border-gray-300 rounded-lg p-3 w-full shadow-sm @error('major') border-red-500 @enderror">
 
                         @error('major')
@@ -187,25 +177,41 @@
                         <div id="quotaInfo" class="p-3 rounded-lg text-sm hidden"></div>
                     </div>
 
-                    <!-- Upload PDF -->
+                    <!-- Hidden field untuk file path dari OCR di step sebelumnya -->
+                    <input type="hidden" name="surat_permohonan_path" id="suratPermohonanPath" value="{{ old('surat_permohonan_path', $ocrData['surat_permohonan_path'] ?? '') }}">
+
+                    <!-- OCR Status Display -->
+                    <div class="md:col-span-2">
+                        <div id="ocrStatus" class="p-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 inline"></i> Surat Permohonan telah berhasil di-scan pada tahap sebelumnya
+                        </div>
+                    </div>
+
+                    <!-- Upload Surat Laporan -->
                     <div class="md:col-span-2">
                         <label class="block font-semibold mb-2 text-gray-700 flex items-center gap-2">
                             <i data-lucide="file-text" class="w-5 h-5 text-gray-500"></i>
-                            Surat Permohonan (PDF) <span class="text-red-500">*</span>
+                            Surat Laporan (PDF) <span class="text-red-500">*</span>
                         </label>
 
-                        <div id="dropzone"
+                        <div id="suratLaporanDropzone"
                             class="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 transition relative bg-white @error('file') border-red-500 @enderror">
 
                             <i data-lucide="upload-cloud" class="w-10 h-10 text-gray-400 mb-2"></i>
-                            <p class="text-gray-500 text-sm">Drag & drop file di sini atau klik untuk memilih file</p>
+                            <p class="text-gray-500 text-sm">Drag & drop file surat laporan di sini atau klik untuk memilih file</p>
                             <p class="text-gray-400 text-xs mt-1">Hanya PDF, maksimal 5MB</p>
 
-                            <input type="file" name="file" accept="application/pdf"
+                            <input type="file" id="suratLaporanFile" name="file" accept="application/pdf"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
 
-                            <span id="fileName" class="mt-2 text-sm font-medium text-gray-700"></span>
+                            <span id="suratLaporanFileName" class="mt-2 text-sm font-medium text-gray-700"></span>
                         </div>
+
+                        <!-- Hidden field untuk file path -->
+                        <input type="hidden" name="surat_laporan_path" id="suratLaporanPath">
+
+                        <!-- Upload Status -->
+                        <div id="suratLaporanStatus" class="mt-3 hidden"></div>
 
                         @error('file')
                             <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
@@ -214,7 +220,7 @@
 
                     <!-- Anggota Kelompok (Dinamis) -->
                     <div class="md:col-span-2">
-                        <div id="membersContainer" class="space-y-3 {{ old('type') == 'group' ? '' : 'hidden' }}">
+                        <div id="membersContainer" class="space-y-3 {{ $type === 'group' ? '' : 'hidden' }}">
                             <button type="button" id="addMemberBtn"
                                 class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition font-semibold mb-2">
                                 + Tambah Anggota
@@ -257,8 +263,8 @@
         document.addEventListener("DOMContentLoaded", function() {
             lucide.createIcons();
 
-            const typeSelect = document.getElementById('type');
-            const labelLeader = document.getElementById('labelLeader');
+            const typeField = document.querySelector('input[name="type"]');
+            const appType = typeField.value;
             const membersContainer = document.getElementById('membersContainer');
             const membersList = document.getElementById('membersList');
             const addMemberBtn = document.getElementById('addMemberBtn');
@@ -271,20 +277,6 @@
             const quotaInfo = document.getElementById('quotaInfo');
             const submitBtn = document.getElementById('submitBtn');
             const applyForm = document.getElementById('applyForm');
-
-            // toggle group members
-            typeSelect.addEventListener('change', () => {
-                if (typeSelect.value === 'group') {
-                    labelLeader.textContent = 'Nama Ketua';
-                    membersContainer.classList.remove('hidden');
-                } else {
-                    labelLeader.textContent = 'Nama';
-                    membersContainer.classList.add('hidden');
-                    membersList.innerHTML = '';
-                }
-            });
-
-            // Auto-fill durasi saat departemen dipilih (dari database)
             departmentEl.addEventListener('change', () => {
                 const selectedOption = departmentEl.options[departmentEl.selectedIndex];
                 if (departmentEl.value && selectedOption.dataset.duration) {
@@ -323,35 +315,6 @@
                 memberDiv.querySelector('.removeMemberBtn').addEventListener('click', () => {
                     membersList.removeChild(memberDiv);
                 });
-            });
-
-            // Dropzone upload
-            const dropzone = document.getElementById('dropzone');
-            const fileInput = dropzone.querySelector('input[type="file"]');
-            const fileName = document.getElementById('fileName');
-
-            fileInput.addEventListener('change', function() {
-                fileName.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : '';
-            });
-
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('border-blue-400', 'bg-blue-50');
-            });
-
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('border-blue-400', 'bg-blue-50');
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-blue-400', 'bg-blue-50');
-
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    fileInput.files = files;
-                    fileName.textContent = files[0].name;
-                }
             });
 
             // Calculate and validate period (months and days)
@@ -504,6 +467,88 @@
             // Prevent multiple submit clicks (UX)
             applyForm.addEventListener('submit', function(e) {
                 submitBtn.disabled = true;
+            });
+
+            // ========== SURAT LAPORAN UPLOAD HANDLER ==========
+            const suratLaporanDropzone = document.getElementById('suratLaporanDropzone');
+            const suratLaporanFile = document.getElementById('suratLaporanFile');
+            const suratLaporanFileName = document.getElementById('suratLaporanFileName');
+            const suratLaporanStatus = document.getElementById('suratLaporanStatus');
+            const suratLaporanPath = document.getElementById('suratLaporanPath');
+
+            // Handle file upload
+            const handleSuratLaporanUpload = async function(file) {
+                if (!file || file.type !== 'application/pdf') {
+                    suratLaporanStatus.textContent = 'File harus PDF';
+                    suratLaporanStatus.className = 'mt-3 p-3 rounded-lg border bg-red-50 border-red-200 text-red-700';
+                    return;
+                }
+
+                suratLaporanFileName.textContent = file.name;
+                suratLaporanStatus.classList.remove('hidden');
+                suratLaporanStatus.className = 'mt-3 p-3 rounded-lg border bg-blue-50 border-blue-200 text-blue-700';
+                suratLaporanStatus.innerHTML = '<i data-lucide="loader" class="w-4 h-4 inline animate-spin"></i> Uploading surat laporan...';
+                lucide.createIcons();
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/api/surat-laporan/upload', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: formData
+                    });
+
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error(`Server error (${response.status}): Response tidak valid JSON`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        suratLaporanPath.value = data.file_path;
+                        suratLaporanStatus.className = 'mt-3 p-3 rounded-lg border bg-green-50 border-green-200 text-green-700';
+                        suratLaporanStatus.innerHTML = '✓ Surat laporan berhasil tergupload.';
+                    } else {
+                        suratLaporanStatus.className = 'mt-3 p-3 rounded-lg border bg-red-50 border-red-200 text-red-700';
+                        suratLaporanStatus.innerHTML = '❌ ' + (data.message || 'Upload surat laporan gagal');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    suratLaporanStatus.className = 'mt-3 p-3 rounded-lg border bg-red-50 border-red-200 text-red-700';
+                    suratLaporanStatus.innerHTML = '❌ Terjadi kesalahan: ' + error.message;
+                }
+            };
+
+            suratLaporanFile.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    handleSuratLaporanUpload(this.files[0]);
+                }
+            });
+
+            suratLaporanDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                suratLaporanDropzone.classList.add('border-blue-400', 'bg-blue-50');
+            });
+
+            suratLaporanDropzone.addEventListener('dragleave', () => {
+                suratLaporanDropzone.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+
+            suratLaporanDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                suratLaporanDropzone.classList.remove('border-blue-400', 'bg-blue-50');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    suratLaporanFile.files = files;
+                    handleSuratLaporanUpload(files[0]);
+                }
             });
         });
     </script>

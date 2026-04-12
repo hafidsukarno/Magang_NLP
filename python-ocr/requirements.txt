@@ -1,9 +1,0 @@
-paddlepaddle==2.6.2
-paddleocr==2.7.0.3
-fastapi
-uvicorn
-opencv-python
-pillow
-numpy==1.23.5
-python-multipart
-pdf2img

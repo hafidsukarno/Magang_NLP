@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'ocr' => [
+        'endpoint' => env('OCR_ENDPOINT', 'http://127.0.0.1:8500/ocr'),
+    ],
+
 ];

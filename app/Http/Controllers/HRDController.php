@@ -5,7 +5,6 @@ use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\Department;
 use App\Models\DepartmentQuota;
-use App\Services\RpaScoringService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -26,36 +25,12 @@ class HRDController extends Controller {
 
 
     public function show($id) {
-        $app = Application::with(['members','rpaResult','department'])->findOrFail($id);
-
-        $rpa = new RpaScoringService();
-
-        $score = null;
-        $breakdown = null;
-        $recommended = null;
-        $deptRecommendations = null;
-
-        if ($app->rpaResult && $app->rpaResult->fields) {
-
-            $fields = $app->rpaResult->fields;
-
-            // Always compute score
-            $result = $rpa->computeScore($app, $fields);
-
-            $score = $result['total'];
-            $breakdown = $result['details'];
-
-            // Status
-            $recommended = $rpa->recommendStatus($app, $score);
-
-            // Rekomendasi per departemen
-            $deptRecommendations = $rpa->simulateForAllDepartments($app, $fields);
-        }
+        $app = Application::with(['members','department'])->findOrFail($id);
 
         $departments = Department::all();
 
         return view('hrd.show',
-            compact('app','score','breakdown','recommended','departments','deptRecommendations')
+            compact('app','departments')
         );
     }
 
@@ -178,14 +153,6 @@ class HRDController extends Controller {
             }
 
             $app->save();
-
-            // Recompute score if rpaResult exists and department assigned
-            if ($app->department_id && $app->rpaResult) {
-                $rpa = new RpaScoringService();
-                $score = $rpa->computeScore($app, $app->rpaResult->fields);
-                $app->score = $score['total'];
-                $app->save();
-            }
 
             DB::commit();
             return back()->with('success','Data berhasil diperbarui.');

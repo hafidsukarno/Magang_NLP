@@ -45,6 +45,9 @@ Route::middleware(['auth', 'role:mahasiswa'])
         Route::get('/dashboard', [ApplicationController::class, 'mahasiswaDashboard'])
             ->name('mahasiswa.dashboard');
 
+        Route::get('/pengajuan/upload-surat', [ApplicationController::class, 'uploadSurat'])
+            ->name('apply.upload-surat');
+
         Route::get('/pengajuan/create', [ApplicationController::class, 'create'])
             ->name('apply.form');
 

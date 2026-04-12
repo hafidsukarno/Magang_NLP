@@ -213,17 +213,10 @@
                 <h3 class="font-bold text-blue-700 mb-2">Status Pengajuan</h3>
                 <p class="text-sm text-blue-700">Pengajuan Anda sudah direview oleh HRD. Silakan lihat detail status di atas.</p>
             </div>
-            @elseif($app->rpaResult)
-            <div class="bg-white p-4 rounded-lg border">
-                <h3 class="font-bold mb-3">Hasil Scan Dokumen</h3>
-                <p class="text-gray-600 text-sm">Score RPA:</p>
-                <p class="text-2xl font-bold text-blue-600">{{ $app->rpaResult->score ?? 'N/A' }}</p>
-                <p class="text-gray-600 text-sm mt-2">Status: <span class="font-semibold">Sudah Diproses</span></p>
-            </div>
             @else
             <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
-                <h3 class="font-bold text-yellow-700 mb-2">Proses Scanning</h3>
-                <p class="text-sm text-yellow-700">Dokumen sedang dalam proses scan. Silakan tunggu beberapa saat...</p>
+                <h3 class="font-bold text-yellow-700 mb-2">Proses Review</h3>
+                <p class="text-sm text-yellow-700">Pengajuan sedang dalam proses review oleh HRD. Silakan tunggu beberapa saat...</p>
             </div>
             @endif
         </div>

@@ -23,33 +23,47 @@
     </div>
 
     <!-- SUMMARY CARDS -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        <div class="bg-blue-100 p-4 rounded-lg border-l-4 border-blue-500">
+    <div class="flex flex-wrap gap-4 mb-6">
+        <div class="flex-1 min-w-[calc(25%-1rem)] bg-blue-100 p-4 rounded-lg border-l-4 border-blue-500">
             <p class="text-gray-600 text-sm">Total Pengajuan</p>
             <p class="text-2xl font-bold text-blue-600">{{ $summary['total'] }}</p>
             <p class="text-xs text-gray-600 mt-1">{{ $summary['total_individual'] }} Individual · {{ $summary['total_group'] }} Group</p>
         </div>
-        <div class="bg-yellow-100 p-4 rounded-lg border-l-4 border-yellow-500">
+        <div class="flex-1 min-w-[calc(25%-1rem)] bg-yellow-100 p-4 rounded-lg border-l-4 border-yellow-500">
             <p class="text-gray-600 text-sm">Menunggu Review</p>
             <p class="text-2xl font-bold text-yellow-600">{{ $summary['menunggu'] }}</p>
             <p class="text-xs text-gray-600 mt-1">{{ $summary['menunggu_individual'] }} Individual · {{ $summary['menunggu_group'] }} Group</p>
         </div>
-        <div class="bg-green-100 p-4 rounded-lg border-l-4 border-green-500">
+        <div class="flex-1 min-w-[calc(25%-1rem)] bg-green-100 p-4 rounded-lg border-l-4 border-green-500">
             <p class="text-gray-600 text-sm">Diterima</p>
-            <p class="text-2xl font-bold text-green-600">{{ $summary['diterima_count'] }}</p>
-            <p class="text-xs text-green-600 mt-1 font-semibold">{{ $summary['diterima'] }} aplikasi</p>
+            <p class="text-2xl font-bold text-green-600">{{ $summary['diterima'] }}</p>
+            <p class="text-xs text-gray-600 mt-1">{{ $summary['diterima_individual'] ?? 0 }} Individual · {{ $summary['diterima_group'] ?? 0 }} Group</p>
         </div>
-        <div class="bg-red-100 p-4 rounded-lg border-l-4 border-red-500">
+        <div class="flex-1 min-w-[calc(25%-1rem)] bg-red-100 p-4 rounded-lg border-l-4 border-red-500">
             <p class="text-gray-600 text-sm">Ditolak</p>
-            <p class="text-2xl font-bold text-red-600">{{ $summary['ditolak_count'] }}</p>
-            <p class="text-xs text-red-600 mt-1 font-semibold">{{ $summary['ditolak'] }} aplikasi</p>
+            <p class="text-2xl font-bold text-red-600">{{ $summary['ditolak'] }}</p>
+            <p class="text-xs text-gray-600 mt-1">{{ $summary['ditolak_individual'] ?? 0 }} Individual · {{ $summary['ditolak_group'] ?? 0 }} Group</p>
         </div>
     </div>
 
     <!-- TOMBOL BUAT PENGAJUAN -->
-    <a href="{{ route('apply.form') }}" class="px-4 py-2 bg-green-600 text-white rounded mb-4 inline-block hover:bg-green-700">
-        + Buat Pengajuan Baru
-    </a>
+    <div x-data="{ openMenu: false }" class="relative inline-block mb-4">
+        <button @click="openMenu = !openMenu" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2 font-semibold">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            Buat Pengajuan Baru
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+        <div @click.outside="openMenu = false" x-show="openMenu" x-transition class="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+            <a href="{{ route('apply.upload-surat', ['type' => 'individual']) }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+                <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>
+                Individu
+            </a>
+            <a href="{{ route('apply.upload-surat', ['type' => 'group']) }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 border-t border-gray-200">
+                <i data-lucide="users" class="w-4 h-4 inline mr-2"></i>
+                Kelompok
+            </a>
+        </div>
+    </div>
 
     <!-- DAFTAR PENGAJUAN TERBARU -->
     <div class="mt-6">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessOcr;
 use App\Models\Application;
 use App\Models\ApplicationMember;
 use App\Models\Department;
@@ -19,8 +18,38 @@ class ApplicationController extends Controller
         return view('welcome');
     }
 
-    public function create()
+    /**
+     * Tampilkan halaman upload surat permohonan
+     */
+    public function uploadSurat(Request $request)
     {
+        $type = $request->query('type');
+
+        // Validasi type
+        if (!in_array($type, ['individual', 'group'])) {
+            return redirect()->route('mahasiswa.dashboard')->with('error', 'Tipe pengajuan tidak valid');
+        }
+
+        return view('mahasiswa.upload-surat', compact('type'));
+    }
+
+    public function create(Request $request)
+    {
+        $type = $request->query('type');
+
+        // Validasi type
+        if (!in_array($type, ['individual', 'group'])) {
+            return redirect()->route('mahasiswa.dashboard')->with('error', 'Tipe pengajuan tidak valid');
+        }
+
+        // Get OCR data from query parameters
+        $ocrData = [
+            'nama' => $request->query('ocr_nama'),
+            'major' => $request->query('ocr_major'),
+            'type' => $request->query('ocr_type'),
+            'surat_permohonan_path' => $request->query('surat_permohonan_path'),
+        ];
+
         $departments = Department::with('periods')->get()->map(function($dept) {
             // Ambil durasi dari period pertama
             $duration = $dept->periods->first()?->duration ?? 5;
@@ -30,7 +59,7 @@ class ApplicationController extends Controller
                 'duration' => $duration,
             ];
         });
-        return view('mahasiswa.create', compact('departments'));
+        return view('mahasiswa.create', compact('departments', 'type', 'ocrData'));
     }
 
     public function store(Request $r)
@@ -184,7 +213,8 @@ class ApplicationController extends Controller
                 'period_start' => $periodStart,
                 'period_end' => $periodEnd,
                 'file_path' => $path,
-                'status' => 'menunggu'
+                'status' => 'menunggu',
+                'surat_permohonan_path' => $r->input('surat_permohonan_path'),
             ]);
 
             if ($r->type === 'group' && $r->members) {
@@ -208,8 +238,6 @@ class ApplicationController extends Controller
                     'phone' => $r->leader_phone
                 ]);
             }
-
-            ProcessOcr::dispatch($app);
 
             DB::commit();
 
@@ -375,7 +403,7 @@ class ApplicationController extends Controller
     {
         $user = auth()->user();
         
-        $app = Application::with(['members', 'rpaResult', 'department'])
+        $app = Application::with(['members', 'department'])
             ->where('user_id', $user->id)
             ->findOrFail($id);
 

@@ -26,6 +26,14 @@ class Application extends Model
         'hrd_note',
         'leader_status',
         'leader_note',
+        'surat_permohonan_path',
+        'surat_permohonan_extracted_text',
+        'surat_permohonan_nama',
+        'surat_permohonan_major',
+        'surat_permohonan_type',
+        'surat_laporan_path',
+        'surat_laporan_extracted_text',
+        'surat_laporan_title',
     ];
 
     protected $casts = [
@@ -45,9 +53,5 @@ class Application extends Model
     public function department()
     {
         return $this->belongsTo(Department::class, 'department_id');
-    }
-    public function rpaResult()
-    {
-        return $this->hasOne(RpaResult::class);
     }
 }
