@@ -9,6 +9,8 @@ use App\Models\DepartmentSkill;
 use App\Models\DepartmentMajor;
 use Illuminate\Http\Request;
 use App\Models\Application;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class DepartmentController extends Controller
 {
@@ -42,7 +44,24 @@ class DepartmentController extends Controller
             'skills.*' => 'nullable|string|max:255',
         ]);
 
-        $department = Department::create($request->only('name', 'quota'));
+        // Validasi durasi sesuai dengan periode
+        if ($request->filled('periods') && $request->filled('period_start') && $request->filled('period_end')) {
+            $period = $request->periods[0] ?? null;
+            if ($period) {
+                $startDate = \Carbon\Carbon::parse($request->period_start);
+                $endDate = \Carbon\Carbon::parse($request->period_end);
+                $monthsDiff = $endDate->diffInMonths($startDate);
+                
+                // Toleransi ±15 hari
+                if (abs($monthsDiff - $period) > 1.5) {
+                    return back()->withErrors([
+                        'period_end' => "Durasi periode ({$monthsDiff} bulan) tidak sesuai dengan periode magang ({$period} bulan). Toleransi ±15 hari."
+                    ])->withInput();
+                }
+            }
+        }
+
+        $department = Department::create($request->only('name', 'quota', 'period_start', 'period_end'));
 
         // Simpan periode magang (durasi dalam bulan)
         if ($request->filled('periods')) {
@@ -108,60 +127,107 @@ class DepartmentController extends Controller
         $request->validate([
             'name' => 'nullable|string|max:255',
             'quota' => 'nullable|integer|min:0',
-            'periods' => 'nullable|array',
-            'periods.*' => 'nullable|integer|min:1',
+            'period_start' => 'nullable|date',
+            'period_end' => 'nullable|date|after_or_equal:period_start',
+            'periods' => 'required|array|min:1',
+            'periods.*' => 'required|integer|min:1',
             'majors' => 'nullable|array',
             'majors.*' => 'nullable|string|max:255',
             'skills' => 'nullable|array',
             'skills.*' => 'nullable|string|max:255',
         ]);
 
-        // Update basic info
-        $department->update($request->only('name', 'quota'));
-
-        // Update periode magang (hapus yang lama, tambah yang baru)
-        if ($request->filled('periods')) {
-            $department->periods()->delete();
-            foreach ($request->periods as $index => $weeks) {
-                if ($weeks) {
-                    DepartmentPeriod::create([
-                        'department_id' => $department->id,
-                        'duration' => $weeks,
-                        'position' => $index,
-                    ]);
+        // Validasi durasi sesuai dengan periode
+        if ($request->filled('periods') && $request->filled('period_start') && $request->filled('period_end')) {
+            $period = $request->periods[0] ?? null;
+            if ($period) {
+                $startDate = \Carbon\Carbon::parse($request->period_start);
+                $endDate = \Carbon\Carbon::parse($request->period_end);
+                $monthsDiff = $endDate->diffInMonths($startDate);
+                
+                // Toleransi ±15 hari
+                if (abs($monthsDiff - $period) > 1.5) {
+                    return back()->withErrors([
+                        'period_end' => "Durasi periode ({$monthsDiff} bulan) tidak sesuai dengan periode magang ({$period} bulan). Toleransi ±15 hari."
+                    ])->withInput();
                 }
             }
         }
 
-        // Update jurusan yang relevan
-        if ($request->filled('majors')) {
-            $department->majors()->delete();
-            foreach ($request->majors as $index => $major) {
-                if ($major) {
-                    DepartmentMajor::create([
-                        'department_id' => $department->id,
-                        'name' => $major,
-                        'position' => $index,
-                    ]);
+        try {
+            // Log incoming request
+            Log::info('Update department request', [
+                'department_id' => $department->id,
+                'name' => $request->input('name'),
+                'quota' => $request->input('quota'),
+                'periods' => $request->input('periods'),
+                'majors' => $request->input('majors'),
+                'skills' => $request->input('skills'),
+            ]);
+
+            // Update basic info
+            $department->update($request->only('name', 'quota', 'period_start', 'period_end'));
+
+            // Update periode magang (hapus yang lama, tambah yang baru)
+            if ($request->filled('periods')) {
+                Log::info('Updating periods for department', [
+                    'department_id' => $department->id,
+                    'periods' => $request->input('periods'),
+                ]);
+                
+                $department->periods()->delete();
+                foreach ($request->periods as $index => $weeks) {
+                    if ($weeks) {
+                        Log::info('Creating period', [
+                            'department_id' => $department->id,
+                            'duration' => $weeks,
+                            'position' => $index,
+                        ]);
+                        
+                        DepartmentPeriod::create([
+                            'department_id' => $department->id,
+                            'duration' => $weeks,
+                            'position' => $index,
+                        ]);
+                    }
+                }
+            } else {
+                Log::warning('No periods provided in request', ['department_id' => $department->id]);
+            }
+
+            // Update jurusan yang relevan
+            if ($request->filled('majors')) {
+                $department->majors()->delete();
+                foreach ($request->majors as $index => $major) {
+                    if ($major) {
+                        DepartmentMajor::create([
+                            'department_id' => $department->id,
+                            'name' => $major,
+                            'position' => $index,
+                        ]);
+                    }
                 }
             }
-        }
 
-        // Update keahlian
-        if ($request->filled('skills')) {
-            $department->skills()->delete();
-            foreach ($request->skills as $index => $skill) {
-                if ($skill) {
-                    DepartmentSkill::create([
-                        'department_id' => $department->id,
-                        'name' => $skill,
-                        'position' => $index,
-                    ]);
+            // Update keahlian
+            if ($request->filled('skills')) {
+                $department->skills()->delete();
+                foreach ($request->skills as $index => $skill) {
+                    if ($skill) {
+                        DepartmentSkill::create([
+                            'department_id' => $department->id,
+                            'name' => $skill,
+                            'position' => $index,
+                        ]);
+                    }
                 }
             }
-        }
 
-        return back()->with('success', 'Data departemen berhasil diperbarui.');
+            return back()->with('success', 'Data departemen berhasil diperbarui.');
+        } catch (\Exception $e) {
+            Log::error('Department update failed: ' . $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        }
     }
 
     /**

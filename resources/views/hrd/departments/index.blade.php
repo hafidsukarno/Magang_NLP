@@ -129,7 +129,7 @@
 
                                 <!-- EDIT (modal) -->
                                 <a href="javascript:void(0)"
-                                    onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->periods->pluck('duration')->toArray()) }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }})"
+                                    onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->periods->pluck('duration')->toArray()) }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }}, '{{ $d->period_start ?? '' }}', '{{ $d->period_end ?? '' }}')"
                                     class="text-yellow-600 hover:text-yellow-800 transition" title="Edit Departemen">
                                     <i data-lucide="edit-2" class="w-5 h-5"></i>
                                 </a>
@@ -199,8 +199,22 @@
                 <!-- PERIODE MAGANG -->
                 <div class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
                     <label class="block text-gray-700 font-medium mb-2">Waktu Periode Magang (Bulan)</label>
-                    <input type="number" name="periods[]" min="1" placeholder="Contoh: 3, 4, 5, atau 6 bulan"
-                        class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                    <input type="number" name="periods[]" id="addPeriod" min="1" placeholder="Contoh: 3, 4, 5, atau 6 bulan"
+                        class="w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200">
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
+                            <input type="date" name="period_start" id="addPeriodStart"
+                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
+                            <input type="date" name="period_end" id="addPeriodEnd"
+                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Durasi harus sesuai dengan jumlah bulan di atas ±15 hari</p>
                 </div>
 
                 <!-- JURUSAN YANG RELEVAN -->
@@ -280,6 +294,20 @@
                     <label class="block text-gray-700 font-medium mb-2">Waktu Periode Magang (Bulan)</label>
                     <div id="periodsContainerEdit">
                     </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div>
+                            <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
+                            <input type="date" name="period_start" id="editPeriodStart"
+                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
+                            <input type="date" name="period_end" id="editPeriodEnd"
+                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Durasi harus sesuai dengan jumlah bulan di atas ±15 hari</p>
                 </div>
 
                 <!-- JURUSAN YANG RELEVAN -->
@@ -325,6 +353,37 @@
     <script>
         lucide.createIcons();
 
+        // Debug form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const editForm = document.getElementById('editForm');
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const periods = formData.getAll('periods[]');
+                    const majors = formData.getAll('majors[]');
+                    const skills = formData.getAll('skills[]');
+                    
+                    console.log('=== FORM DATA ===');
+                    console.log('Periods:', periods);
+                    console.log('Majors:', majors);
+                    console.log('Skills:', skills);
+                    console.log('Name:', formData.get('name'));
+                    console.log('Quota:', formData.get('quota'));
+                    
+                    if (periods.every(p => !p)) {
+                        alert('⚠️ Periode kosong! Tambah periode sebelum update.');
+                        return;
+                    }
+                    
+                    // Submit form normally
+                    this.removeEventListener('submit', arguments.callee);
+                    this.submit();
+                });
+            }
+        });
+
         function openAddModal() {
             document.getElementById('addModal').classList.remove('hidden');
         }
@@ -362,11 +421,13 @@
             lucide.createIcons();
         }
 
-        function openEditModal(id, name, quota, periods, majors, skills) {
+        function openEditModal(id, name, quota, periods, majors, skills, periodStart, periodEnd) {
             document.getElementById('editModal').classList.remove('hidden');
 
             document.getElementById('editName').value = name;
             document.getElementById('editQuota').value = quota;
+            document.getElementById('editPeriodStart').value = periodStart;
+            document.getElementById('editPeriodEnd').value = periodEnd;
 
             // keep route consistent with controller (PATCH to /hrd/departments/{department}/update)
             document.getElementById('editForm').action =
@@ -377,27 +438,25 @@
         }
 
         function populateEditFormData(periods, majors, skills) {
-            // Populate periods
+            // Populate periods - hanya 1 field, tanpa tombol hapus
             const periodsContainer = document.getElementById('periodsContainerEdit');
             periodsContainer.innerHTML = '';
             
             if (periods && periods.length > 0) {
-                periods.forEach(weeks => {
-                    const input = document.createElement('input');
-                    input.type = 'number';
-                    input.name = 'periods[]';
-                    input.value = weeks;
-                    input.min = '1';
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-                    periodsContainer.appendChild(input);
-                });
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.name = 'periods[]';
+                input.value = periods[0]; // Ambil periode pertama saja
+                input.min = '1';
+                input.className = 'w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200';
+                periodsContainer.appendChild(input);
             } else {
                 const input = document.createElement('input');
                 input.type = 'number';
                 input.name = 'periods[]';
                 input.min = '1';
                 input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-                input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
+                input.className = 'w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200';
                 periodsContainer.appendChild(input);
             }
 
@@ -406,21 +465,45 @@
             majorsContainer.innerHTML = '';
             
             if (majors && majors.length > 0) {
-                majors.forEach(majorName => {
+                majors.forEach((majorName, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'flex gap-2 mb-2';
+                    
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.name = 'majors[]';
                     input.value = majorName;
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-                    majorsContainer.appendChild(input);
+                    input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-green-200';
+                    wrapper.appendChild(input);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+                    deleteBtn.innerHTML = '✕';
+                    deleteBtn.onclick = () => wrapper.remove();
+                    wrapper.appendChild(deleteBtn);
+                    
+                    majorsContainer.appendChild(wrapper);
                 });
             } else {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex gap-2 mb-2';
+                
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.name = 'majors[]';
                 input.placeholder = 'Contoh: Sistem Informasi';
-                input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-                majorsContainer.appendChild(input);
+                input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-green-200';
+                wrapper.appendChild(input);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+                deleteBtn.innerHTML = '✕';
+                deleteBtn.onclick = () => wrapper.remove();
+                wrapper.appendChild(deleteBtn);
+                
+                majorsContainer.appendChild(wrapper);
             }
 
             // Populate skills
@@ -428,21 +511,45 @@
             skillsContainer.innerHTML = '';
             
             if (skills && skills.length > 0) {
-                skills.forEach(skillName => {
+                skills.forEach((skillName, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'flex gap-2 mb-2';
+                    
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.name = 'skills[]';
                     input.value = skillName;
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
-                    skillsContainer.appendChild(input);
+                    input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-purple-200';
+                    wrapper.appendChild(input);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+                    deleteBtn.innerHTML = '✕';
+                    deleteBtn.onclick = () => wrapper.remove();
+                    wrapper.appendChild(deleteBtn);
+                    
+                    skillsContainer.appendChild(wrapper);
                 });
             } else {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex gap-2 mb-2';
+                
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.name = 'skills[]';
                 input.placeholder = 'Contoh: PHP, Laravel';
-                input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
-                skillsContainer.appendChild(input);
+                input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-purple-200';
+                wrapper.appendChild(input);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+                deleteBtn.innerHTML = '✕';
+                deleteBtn.onclick = () => wrapper.remove();
+                wrapper.appendChild(deleteBtn);
+                
+                skillsContainer.appendChild(wrapper);
             }
 
             lucide.createIcons();
@@ -473,22 +580,60 @@
 
         function addMajorFieldEdit() {
             const container = document.getElementById('majorsContainerEdit');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex gap-2 mb-2';
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'majors[]';
             input.placeholder = 'Contoh: Sistem Informasi';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-            container.appendChild(input);
+            input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-green-200';
+            wrapper.appendChild(input);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+            deleteBtn.innerHTML = '✕';
+            deleteBtn.onclick = () => wrapper.remove();
+            wrapper.appendChild(deleteBtn);
+            
+            container.appendChild(wrapper);
             lucide.createIcons();
         }
 
         function addSkillFieldEdit() {
             const container = document.getElementById('skillsContainerEdit');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex gap-2 mb-2';
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'skills[]';
             input.placeholder = 'Contoh: PHP, Laravel';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
+            input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-purple-200';
+            wrapper.appendChild(input);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600';
+            deleteBtn.innerHTML = '✕';
+            deleteBtn.onclick = () => wrapper.remove();
+            wrapper.appendChild(deleteBtn);
+            
+            container.appendChild(wrapper);
+            lucide.createIcons();
+        }
+
+        function addPeriodFieldEdit() {
+            const container = document.getElementById('periodsContainerEdit');
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.name = 'periods[]';
+            input.min = '1';
+            input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
+            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
             container.appendChild(input);
             lucide.createIcons();
         }
