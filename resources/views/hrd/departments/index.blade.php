@@ -54,6 +54,7 @@
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Departemen</th>
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap text-center">Kuota</th>
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Periode (Bulan)</th>
+                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Tanggal Periode</th>
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Jurusan Relevan</th>
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Keahlian</th>
                         <th class="p-3 text-gray-700 font-semibold whitespace-nowrap text-center">Aksi</th>
@@ -89,6 +90,26 @@
                                             </span>
                                         @endforeach
                                     </div>
+                                @else
+                                    <span class="text-gray-400 text-sm">-</span>
+                                @endif
+                            </td>
+
+                            <!-- TANGGAL PERIODE -->
+                            <td class="p-3">
+                                @if($d->periods->isNotEmpty())
+                                    @php
+                                        $period = $d->periods->first();
+                                    @endphp
+                                    @if($period->period_start && $period->period_end)
+                                        <div class="text-xs">
+                                            <div class="font-medium">{{ \Carbon\Carbon::parse($period->period_start)->format('d M Y') }}</div>
+                                            <div class="text-gray-500">s/d</div>
+                                            <div class="font-medium">{{ \Carbon\Carbon::parse($period->period_end)->format('d M Y') }}</div>
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400 text-sm">-</span>
+                                    @endif
                                 @else
                                     <span class="text-gray-400 text-sm">-</span>
                                 @endif
@@ -181,8 +202,19 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('departments.store') }}">>
+            <form method="POST" action="{{ route('departments.store') }}" id="addForm">>>
                 @csrf
+
+                @if($errors->any())
+                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <p class="text-red-700 font-semibold text-sm mb-2">❌ Gagal menambah departemen:</p>
+                        <ul class="text-red-600 text-sm space-y-1">
+                            @foreach($errors->all() as $error)
+                                <li>• {{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <div class="mb-4">
                     <label class="block text-gray-700 font-medium mb-1">Nama Departemen</label>
@@ -365,12 +397,14 @@
                     const majors = formData.getAll('majors[]');
                     const skills = formData.getAll('skills[]');
                     
-                    console.log('=== FORM DATA ===');
+                    console.log('🔍 === EDIT FORM DATA ===');
                     console.log('Periods:', periods);
                     console.log('Majors:', majors);
                     console.log('Skills:', skills);
                     console.log('Name:', formData.get('name'));
                     console.log('Quota:', formData.get('quota'));
+                    console.log('Period Start:', formData.get('period_start'));
+                    console.log('Period End:', formData.get('period_end'));
                     
                     if (periods.every(p => !p)) {
                         alert('⚠️ Periode kosong! Tambah periode sebelum update.');
@@ -391,6 +425,38 @@
         function closeAddModal() {
             document.getElementById('addModal').classList.add('hidden');
         }
+
+        // Validasi form add departemen
+        document.addEventListener('DOMContentLoaded', () => {
+            // Jika ada errors dari server, buka modal add
+            @if($errors->any())
+                openAddModal();
+            @endif
+            
+            const addForm = document.getElementById('addForm');
+            if (addForm) {
+                addForm.addEventListener('submit', function(e) {
+                    const period = document.getElementById('addPeriod').value;
+                    const periodStart = document.getElementById('addPeriodStart').value;
+                    const periodEnd = document.getElementById('addPeriodEnd').value;
+                    
+                    console.log('📋 Form submit - period:', period, 'start:', periodStart, 'end:', periodEnd);
+                    
+                    if (!period) {
+                        alert('⚠️ Periode magang harus diisi!');
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // Jika salah satu tanggal diisi, keduanya harus diisi
+                    if ((periodStart && !periodEnd) || (!periodStart && periodEnd)) {
+                        alert('⚠️ Mohon isi KEDUA tanggal (mulai dan berakhir) atau kosongkan keduanya!');
+                        e.preventDefault();
+                        return;
+                    }
+                });
+            }
+        });
 
         // Close modal when clicking outside
         document.getElementById('addModal')?.addEventListener('click', function(e) {
