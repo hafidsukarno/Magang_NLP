@@ -9,7 +9,7 @@ class DepartmentPeriod extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['department_id', 'duration', 'description', 'position'];
+    protected $fillable = ['department_id', 'duration', 'description', 'position', 'period_start', 'period_end'];
 
     public function department()
     {

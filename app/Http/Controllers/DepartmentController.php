@@ -61,7 +61,7 @@ class DepartmentController extends Controller
             }
         }
 
-        $department = Department::create($request->only('name', 'quota', 'period_start', 'period_end'));
+        $department = Department::create($request->only('name', 'quota'));
 
         // Simpan periode magang (durasi dalam bulan)
         if ($request->filled('periods')) {
@@ -70,6 +70,8 @@ class DepartmentController extends Controller
                     DepartmentPeriod::create([
                         'department_id' => $department->id,
                         'duration' => $weeks,
+                        'period_start' => $request->period_start,
+                        'period_end' => $request->period_end,
                         'position' => $index,
                     ]);
                 }
@@ -166,7 +168,7 @@ class DepartmentController extends Controller
             ]);
 
             // Update basic info
-            $department->update($request->only('name', 'quota', 'period_start', 'period_end'));
+            $department->update($request->only('name', 'quota'));
 
             // Update periode magang (hapus yang lama, tambah yang baru)
             if ($request->filled('periods')) {
@@ -187,6 +189,8 @@ class DepartmentController extends Controller
                         DepartmentPeriod::create([
                             'department_id' => $department->id,
                             'duration' => $weeks,
+                            'period_start' => $request->period_start,
+                            'period_end' => $request->period_end,
                             'position' => $index,
                         ]);
                     }
