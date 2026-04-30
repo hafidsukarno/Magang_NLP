@@ -24,57 +24,133 @@ class SuratPermohonanController extends Controller {
 
         try {
             // Save file
-            $filePath = $request->file('file')->store('surat_permohonan');
+            $filePath = $request->file('file')->store('surat_permohonan', 'public');
 
             // Verify file exists using Storage facade
-            if (!Storage::disk('local')->exists($filePath)) {
+            if (!Storage::disk('public')->exists($filePath)) {
                 throw new \Exception("File tidak tersimpan dengan benar");
             }
 
             // Get actual file path for OCR
-            $fullPath = Storage::disk('local')->path($filePath);
+            $fullPath = Storage::disk('public')->path($filePath);
 
-            // Default OCR data (jika service down, tetap return success dengan data null)
-            $nama = null;
-            $major = null;
-            $type = null;
+            // Default OCR data
+            $universitas   = null;
+            $jurusan       = null;
+            $programStudi  = null;
+            $tanggalMasuk  = null;
+            $tanggalKeluar = null;
+            $nama          = null;
+            $major         = null;
+            $type          = 'individual';
+            $members       = [];
             $extractedText = '';
+            $keahlian      = null;
 
-            // Call OCR service (optional - jika gagal, tetap lanjut)
+            // Call OCR service
             try {
-                $response = Http::timeout(40)
+                $ocrUrl = config("services.ocr.endpoint", "http://127.0.0.1:5000/extract");
+                
+                $response = Http::timeout(60)
                     ->attach("file", fopen($fullPath, 'r'), basename($fullPath))
-                    ->post(config("services.ocr.endpoint", "http://127.0.0.1:8500/ocr"));
+                    ->post($ocrUrl);
+
+                // DEBUG: Catat respon ke log
+                Log::info("🔍 OCR Response Status: " . $response->status());
+                Log::info("🔍 OCR Response Body: " . $response->body());
 
                 if ($response->successful()) {
-                    $ocrData = $response->json() ?? [];
+                    $ocrResult = $response->json();
+                    $info = $ocrResult['data'] ?? [];
 
-                    // Extract nama, major, type dari OCR
-                    $nama = $ocrData['fields']['nama'] ?? $ocrData['fields']['name'] ?? null;
-                    $major = $ocrData['fields']['major'] ?? $ocrData['fields']['program_studi'] ?? $ocrData['fields']['prodi'] ?? null;
-                    $type = $ocrData['fields']['type'] ?? $ocrData['fields']['tipe'] ?? null;
-                    $extractedText = $ocrData['extracted_text'] ?? '';
-                } else {
-                    Log::warning("OCR API return non-200", [
-                        "status" => $response->status(),
-                        "body" => $response->body(),
+                    // Ambil data langsung dari key lowercase yang dikirim Python
+                    $universitas   = $info['universitas'] ?? null;
+                    $jurusan       = $info['jurusan'] ?? null;
+                    $programStudi  = $info['program_studi'] ?? null;
+                    $tanggalMasuk  = $info['tanggal_masuk'] ?? null;
+                    $tanggalKeluar = $info['tanggal_keluar'] ?? null;
+                    
+                    // Bersihkan noise "Tidak ditemukan"
+                    $cleanVal = function($val) {
+                        return ($val === 'Tidak ditemukan' || !$val) ? null : $val;
+                    };
+
+                    $universitas   = $cleanVal($universitas);
+                    $jurusan       = $cleanVal($jurusan);
+                    $programStudi  = $cleanVal($programStudi);
+                    $tanggalMasuk  = $cleanVal($tanggalMasuk);
+                    $tanggalKeluar = $cleanVal($tanggalKeluar);
+
+                    $mahasiswaList = $info['daftar_mahasiswa'] ?? [];
+                    if (is_array($mahasiswaList) && count($mahasiswaList) > 0) {
+                        $nama    = $mahasiswaList[0]['Nama'] ?? $mahasiswaList[0]['nama'] ?? null;
+                        $members = $mahasiswaList;
+                    }
+
+                    $major = $jurusan ?? $programStudi ?? ($members[0]['Prodi'] ?? null);
+                    $type  = count($members) > 1 ? 'group' : 'individual';
+                    
+                    $extractedText = $ocrResult['clean_text'] ?? $ocrResult['raw_text'] ?? $ocrResult['message'] ?? 'Ekstraksi berhasil';
+                    $rawText       = $ocrResult['raw_text'] ?? '';
+
+                    // Bersihkan karakter kontrol KECUALI Newline (\n) dan Carriage Return (\r)
+                    $extractedText = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $extractedText);
+                    $extractedText = mb_convert_encoding($extractedText, 'UTF-8', 'UTF-8');
+
+                    // Pastikan tidak kosong sama sekali
+                    if (empty($extractedText)) {
+                        $extractedText = "Teks berhasil diekstrak tapi isinya kosong atau gagal diproses oleh Laravel.";
+                    }
+
+                    Log::info("🚀 SENDING TO BROWSER:", [
+                        'length' => strlen($extractedText),
+                        'prefix' => substr($extractedText, 0, 20)
                     ]);
                 }
+
+                // Call Skill Extraction Service (Port 5005)
+                try {
+                    $skillUrl = "http://127.0.0.1:5005/extract-skills/";
+                    $skillResponse = Http::timeout(60)
+                        ->attach("file", fopen($fullPath, 'r'), basename($fullPath))
+                        ->post($skillUrl);
+
+                    if ($skillResponse->successful()) {
+                        $skillData = $skillResponse->json();
+                        $keahlian = $skillData['keahlian'] ?? '-';
+                        Log::info("🔍 Skill Extraction Result: " . $keahlian);
+                    } else {
+                        $keahlian = '-';
+                        Log::warning("⚠️ Skill Extraction failed with status: " . $skillResponse->status());
+                    }
+                } catch (\Exception $skillError) {
+                    Log::error("❌ Skill Service Error: " . $skillError->getMessage());
+                    $keahlian = '-';
+                }
+
             } catch (\Exception $ocrError) {
-                Log::warning("OCR service error (non-blocking)", [
-                    "error" => $ocrError->getMessage()
-                ]);
-                // Continue regardless - OCR is optional
+                Log::error("❌ OCR Service Error: " . $ocrError->getMessage());
+                $extractedText = "Gagal menghubungi layanan OCR: " . $ocrError->getMessage();
             }
 
-            return response()->json([
-                'success' => true,
-                'file_path' => $filePath,
-                'extracted_text' => $extractedText,
-                'nama' => $nama,
-                'major' => $major,
-                'type' => $type,
-            ]);
+            $finalResponse = [
+                'success'        => true,
+                'file_path'      => $filePath,
+                'extracted_text' => base64_encode((string)$extractedText), // Pakai Base64
+                'raw_text'       => (string)($rawText ?? $extractedText),
+                'nama'           => $nama,
+                'university'     => $universitas,
+                'jurusan'        => $jurusan,
+                'program_studi'  => $programStudi,
+                'major'          => $major,
+                'keahlian'       => $keahlian,
+                'tanggal_masuk'  => $tanggalMasuk,
+                'tanggal_keluar' => $tanggalKeluar,
+                'type'           => $type,
+                'members'        => $members,
+            ];
+
+            return response()->json($finalResponse);
 
         } catch (\Exception $e) {
             Log::error("Surat Permohonan Upload Exception", [
@@ -104,10 +180,10 @@ class SuratPermohonanController extends Controller {
 
         try {
             // Save file
-            $filePath = $request->file('file')->store('surat_laporan');
+            $filePath = $request->file('file')->store('surat_laporan', 'public');
 
             // Verify file exists
-            if (!Storage::disk('local')->exists($filePath)) {
+            if (!Storage::disk('public')->exists($filePath)) {
                 throw new \Exception("File tidak tersimpan dengan benar");
             }
 

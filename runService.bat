@@ -11,17 +11,16 @@ REM Get current directory
 set BASEDIR=%cd%
 
 REM Check if we're in the right directory
-if not exist "python-ocr\main.py" (
-    echo ERROR: python-ocr\main.py not found!
+if not exist "ektrasi data identitas\main.py" (
+    echo ERROR: ektrasi data identitas\main.py not found!
     echo Make sure you run this from project root directory
     pause
     exit /b 1
 )
 
 REM Start OCR Service
-echo [1/3] Starting OCR Service on port 8500...
-cd /d %BASEDIR%\python-ocr
-start "OCR Service - Port 8500" cmd /k "cd /d %BASEDIR%\python-ocr && .\venv\Scripts\activate && python main.py"
+echo [1/3] Starting OCR Service...
+start "OCR Service" cmd /k "cd /d %BASEDIR%\ektrasi data identitas && python main.py"
 cd /d %BASEDIR%
 
 REM Start Laravel Server

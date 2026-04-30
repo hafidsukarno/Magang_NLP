@@ -6,33 +6,27 @@
 
     <div class="p-6 relative">
 
-        <!-- HEADER + SEARCH -->
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <h2 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
+        <!-- HEADER + ACTIONS -->
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight">
                 Manajemen Departemen
             </h2>
 
-            <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-start sm:items-center">
+            <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                 <form method="GET" action="{{ route('departments.index') }}"
-                    class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    class="flex flex-1 sm:flex-none gap-2">
                     <input type="text" name="search" value="{{ request('search') }}"
-                        placeholder="Cari Nama Departemen..."
-                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
+                        placeholder="Cari Departemen, Jurusan, Skill..."
+                        class="w-full sm:w-64 px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition-all text-sm">
                     <button type="submit"
-                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition w-full sm:w-auto">
+                        class="px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg hover:bg-black transition text-sm">
                         Cari
                     </button>
-                    <!-- Tombol Reset -->
-                    <a href="{{ route('departments.index') }}"
-                        class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition w-full sm:w-auto text-center">
-                        Reset
-                    </a>
                 </form>
 
-                <!-- Tombol Tambah (Desktop) -->
                 <button onclick="openAddModal()"
-                    class="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
-                    <i data-lucide="plus"></i>
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition text-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                     Tambah
                 </button>
             </div>
@@ -40,151 +34,106 @@
 
         <!-- Floating Button (Mobile) -->
         <button onclick="openAddModal()"
-            class="sm:hidden fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition z-50">
-            <i data-lucide="plus"></i>
+            class="sm:hidden fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition z-50">
+            <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
 
 
-        <!-- CARD WRAPPER -->
-        <div class="bg-white shadow rounded-lg overflow-x-auto border border-gray-100">
+        <!-- DATA TABLE -->
+        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-widest border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4">Departemen</th>
+                            <th class="px-6 py-4 text-center">Kuota</th>
+                            <th class="px-6 py-4">Jurusan</th>
+                            <th class="px-6 py-4">Keahlian</th>
+                            <th class="px-6 py-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
 
-            <table class="min-w-full text-left border-collapse">
-                <thead class="bg-gray-100 border-b">
-                    <tr class="text-sm">
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Departemen</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap text-center">Kuota</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Periode (Bulan)</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Tanggal Periode</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Jurusan Relevan</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap">Keahlian</th>
-                        <th class="p-3 text-gray-700 font-semibold whitespace-nowrap text-center">Aksi</th>
-                    </tr>
-                </thead>
+                    <tbody class="text-sm divide-y divide-gray-50">
+                        @foreach ($departments as $d)
+                            <tr class="hover:bg-gray-50 transition-colors">
 
-                <tbody class="text-sm">
-                    @foreach ($departments as $d)
-                        <tr class="border-b hover:bg-gray-50 transition">
+                                <!-- DEPT NAME -->
+                                <td class="px-6 py-4">
+                                    <span class="font-semibold text-gray-900">{{ $d->name }}</span>
+                                </td>
 
-                            <!-- NAMA -->
-                            <td class="p-3">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="building-2" class="w-4 h-4 text-gray-600"></i>
-                                    <span class="font-medium">{{ $d->name }}</span>
-                                </div>
-                            </td>
+                                <!-- QUOTA -->
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-bold">
+                                        {{ $d->quota ?? 0 }}
+                                    </span>
+                                </td>
 
-                            <!-- QUOTA (legacy) -->
-                            <td class="p-3 text-center">
-                                <div class="inline-flex items-center gap-2 justify-center">
-                                    {{ $d->quota ?? 0 }}
-                                </div>
-                            </td>
-
-                            <!-- PERIODE MAGANG -->
-                            <td class="p-3">
-                                @if($d->periods->isNotEmpty())
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach($d->periods as $period)
-                                            <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
-                                                {{ $period->duration }} bln
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <span class="text-gray-400 text-sm">-</span>
-                                @endif
-                            </td>
-
-                            <!-- TANGGAL PERIODE -->
-                            <td class="p-3">
-                                @if($d->periods->isNotEmpty())
-                                    @php
-                                        $period = $d->periods->first();
-                                    @endphp
-                                    @if($period->period_start && $period->period_end)
-                                        <div class="text-xs">
-                                            <div class="font-medium">{{ \Carbon\Carbon::parse($period->period_start)->format('d M Y') }}</div>
-                                            <div class="text-gray-500">s/d</div>
-                                            <div class="font-medium">{{ \Carbon\Carbon::parse($period->period_end)->format('d M Y') }}</div>
+                                <!-- MAJORS -->
+                                <td class="px-6 py-4">
+                                    @if($d->majors->isNotEmpty())
+                                        <div class="flex flex-wrap gap-1.5 max-w-xs">
+                                            @foreach($d->majors as $major)
+                                                <span class="text-[11px] text-gray-600 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                                                    {{ $major->name }}
+                                                </span>
+                                            @endforeach
                                         </div>
                                     @else
-                                        <span class="text-gray-400 text-sm">-</span>
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                @else
-                                    <span class="text-gray-400 text-sm">-</span>
-                                @endif
-                            </td>
+                                </td>
 
-                            <!-- JURUSAN RELEVAN -->
-                            <td class="p-3">
-                                @if($d->majors->isNotEmpty())
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach($d->majors as $major)
-                                            <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                                {{ $major->name }}
-                                            </span>
-                                        @endforeach
+                                <!-- SKILLS -->
+                                <td class="px-6 py-4">
+                                    @if($d->skills->isNotEmpty())
+                                        <div class="flex flex-wrap gap-1.5 max-w-xs">
+                                            @foreach($d->skills as $skill)
+                                                <span class="text-[11px] text-gray-600 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                                                    {{ $skill->name }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+
+                                <!-- ACTIONS -->
+                                <td class="px-6 py-4">
+                                    <div class="flex justify-center items-center gap-4 text-gray-400">
+                                        <!-- VIEW ACCEPTED -->
+                                        <a href="{{ route('departments.accepted', $d->id) }}"
+                                            class="hover:text-green-600 transition"
+                                            title="Mahasiswa Diterima">
+                                            <i data-lucide="users" class="w-4 h-4"></i>
+                                        </a>
+
+                                        <!-- EDIT -->
+                                        <button type="button"
+                                            onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }})"
+                                            class="hover:text-blue-600 transition" 
+                                            title="Edit">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </button>
+
+                                        <!-- DELETE -->
+                                        <form id="delete-form-{{ $d->id }}" action="{{ route('departments.destroy', $d->id) }}" method="POST" style="display:none;">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
+                                        <button type="button" onclick="confirmDelete({{ $d->id }}, '{{ $d->name }}')"
+                                            class="hover:text-red-600 transition" 
+                                            title="Hapus">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
                                     </div>
-                                @else
-                                    <span class="text-gray-400 text-sm">-</span>
-                                @endif
-                            </td>
-
-                            <!-- KEAHLIAN -->
-                            <td class="p-3">
-                                @if($d->skills->isNotEmpty())
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach($d->skills as $skill)
-                                            <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                                                {{ $skill->name }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <span class="text-gray-400 text-sm">-</span>
-                                @endif
-                            </td>
-
-                            <!-- AKSI -->
-                            <td class="p-3 text-center flex gap-3 justify-center items-center">
-
-                                <!-- EDIT (modal) -->
-                                <a href="javascript:void(0)"
-                                    onclick="openEditModal({{ $d->id }}, '{{ addslashes($d->name) }}', {{ $d->quota ?? 0 }}, {{ json_encode($d->periods->pluck('duration')->toArray()) }}, {{ json_encode($d->majors->pluck('name')->toArray()) }}, {{ json_encode($d->skills->pluck('name')->toArray()) }}, '{{ $d->period_start ?? '' }}', '{{ $d->period_end ?? '' }}')"
-                                    class="text-yellow-600 hover:text-yellow-800 transition" title="Edit Departemen">
-                                    <i data-lucide="edit-2" class="w-5 h-5"></i>
-                                </a>
-
-                                <!-- SEE -->
-                                <a href="{{ route('departments.accepted', $d->id) }}"
-                                    class="text-green-600 hover:text-green-800 transition"
-                                    title="Lihat mahasiswa diterima">
-                                    <i data-lucide="eye" class="w-5 h-5"></i>
-                                </a>
-
-                                <!-- SETTINGS -->
-                                <a href="{{ route('prodi-maps.index', $d->id) }}"
-                                    class="text-blue-600 hover:text-blue-800 transition" title="Pengaturan Prodi">
-                                    <i data-lucide="settings" class="w-5 h-5"></i>
-                                </a>
-
-                                <!-- DELETE -->
-                                <form id="delete-form-{{ $d->id }}" action="{{ route('departments.destroy', $d->id) }}" method="POST" style="display:none;">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                                <a href="javascript:void(0)" onclick="confirmDelete({{ $d->id }}, '{{ $d->name }}')"
-                                    class="text-red-600 hover:text-red-800 transition" title="Hapus Departemen">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </a>
-
-                            </td>
-
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -228,30 +177,7 @@
                         class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200" required>
                 </div>
 
-                <!-- PERIODE MAGANG -->
-                <div class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-                    <label class="block text-gray-700 font-medium mb-2">Waktu Periode Magang (Bulan)</label>
-                    <input type="number" name="periods[]" id="addPeriod" min="1" placeholder="Contoh: 2, 3, 4, 6 bulan"
-                        class="w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200">
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
-                            <input type="date" name="period_start" id="addPeriodStart"
-                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
-                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 April 2026</p>
-                        </div>
-                        <div>
-                            <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
-                            <input type="date" name="period_end" id="addPeriodEnd"
-                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
-                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 Juni 2026 (2 bulan)</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600 mt-2 bg-white p-2 rounded border border-blue-300">
-                        📝 <strong>Cara menghitung:</strong> Jika periode 2 bulan dari 1 April, maka berakhir 1 Juni. Toleransi ±15 hari.
-                    </p>
-                </div>
+
 
                 <!-- JURUSAN YANG RELEVAN -->
                 <div class="mb-4 p-3 bg-green-50 rounded border border-green-200">
@@ -262,8 +188,11 @@
                         </button>
                     </div>
                     <div id="majorsContainer">
-                        <input type="text" name="majors[]" placeholder="Contoh: Sistem Informasi"
-                            class="w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200">
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" name="majors[]" placeholder="Contoh: Sistem Informasi"
+                                class="flex-1 border rounded px-3 py-2 focus:ring focus:ring-green-200">
+                            <button type="button" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-semibold" onclick="this.parentElement.remove()">✕</button>
+                        </div>
                     </div>
                 </div>
 
@@ -276,8 +205,11 @@
                         </button>
                     </div>
                     <div id="skillsContainer">
-                        <input type="text" name="skills[]" placeholder="Contoh: PHP, Laravel"
-                            class="w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200">
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" name="skills[]" placeholder="Contoh: PHP, Laravel"
+                                class="flex-1 border rounded px-3 py-2 focus:ring focus:ring-purple-200">
+                            <button type="button" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-semibold" onclick="this.parentElement.remove()">✕</button>
+                        </div>
                     </div>
                 </div>
 
@@ -325,30 +257,7 @@
                         class="w-full border rounded px-3 py-2 focus:ring focus:ring-yellow-200" required>
                 </div>
 
-                <!-- PERIODE MAGANG -->
-                <div class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-                    <label class="block text-gray-700 font-medium mb-2">Waktu Periode Magang (Bulan)</label>
-                    <div id="periodsContainerEdit">
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <div>
-                            <label class="block text-gray-600 text-sm font-medium mb-1">Mulai (Tanggal)</label>
-                            <input type="date" name="period_start" id="editPeriodStart"
-                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
-                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 April 2026</p>
-                        </div>
-                        <div>
-                            <label class="block text-gray-600 text-sm font-medium mb-1">Berakhir (Tanggal)</label>
-                            <input type="date" name="period_end" id="editPeriodEnd"
-                                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200">
-                            <p class="text-xs text-gray-500 mt-1">Contoh: 1 Juni 2026 (2 bulan)</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600 mt-2 bg-white p-2 rounded border border-blue-300">
-                        📝 <strong>Cara menghitung:</strong> Jika periode 2 bulan dari 1 April, maka berakhir 1 Juni. Toleransi ±15 hari.
-                    </p>
-                </div>
+
 
                 <!-- JURUSAN YANG RELEVAN -->
                 <div class="mb-4 p-3 bg-green-50 rounded border border-green-200">
@@ -393,38 +302,7 @@
     <script>
         lucide.createIcons();
 
-        // Debug form submission
-        document.addEventListener('DOMContentLoaded', () => {
-            const editForm = document.getElementById('editForm');
-            if (editForm) {
-                editForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const formData = new FormData(this);
-                    const periods = formData.getAll('periods[]');
-                    const majors = formData.getAll('majors[]');
-                    const skills = formData.getAll('skills[]');
-                    
-                    console.log('🔍 === EDIT FORM DATA ===');
-                    console.log('Periods:', periods);
-                    console.log('Majors:', majors);
-                    console.log('Skills:', skills);
-                    console.log('Name:', formData.get('name'));
-                    console.log('Quota:', formData.get('quota'));
-                    console.log('Period Start:', formData.get('period_start'));
-                    console.log('Period End:', formData.get('period_end'));
-                    
-                    if (periods.every(p => !p)) {
-                        alert('⚠️ Periode kosong! Tambah periode sebelum update.');
-                        return;
-                    }
-                    
-                    // Submit form normally
-                    this.removeEventListener('submit', arguments.callee);
-                    this.submit();
-                });
-            }
-        });
+
 
         function openAddModal() {
             document.getElementById('addModal').classList.remove('hidden');
@@ -434,36 +312,10 @@
             document.getElementById('addModal').classList.add('hidden');
         }
 
-        // Validasi form add departemen
         document.addEventListener('DOMContentLoaded', () => {
-            // Jika ada errors dari server, buka modal add
             @if($errors->any())
                 openAddModal();
             @endif
-            
-            const addForm = document.getElementById('addForm');
-            if (addForm) {
-                addForm.addEventListener('submit', function(e) {
-                    const period = document.getElementById('addPeriod').value;
-                    const periodStart = document.getElementById('addPeriodStart').value;
-                    const periodEnd = document.getElementById('addPeriodEnd').value;
-                    
-                    console.log('📋 Form submit - period:', period, 'start:', periodStart, 'end:', periodEnd);
-                    
-                    if (!period) {
-                        alert('⚠️ Periode magang harus diisi!');
-                        e.preventDefault();
-                        return;
-                    }
-                    
-                    // Jika salah satu tanggal diisi, keduanya harus diisi
-                    if ((periodStart && !periodEnd) || (!periodStart && periodEnd)) {
-                        alert('⚠️ Mohon isi KEDUA tanggal (mulai dan berakhir) atau kosongkan keduanya!');
-                        e.preventDefault();
-                        return;
-                    }
-                });
-            }
         });
 
         // Close modal when clicking outside
@@ -475,64 +327,67 @@
 
         function addMajorField() {
             const container = document.getElementById('majorsContainer');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex gap-2 mb-2';
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'majors[]';
             input.placeholder = 'Contoh: Sistem Informasi';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-            container.appendChild(input);
+            input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-green-200';
+            wrapper.appendChild(input);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-semibold';
+            deleteBtn.innerHTML = '✕';
+            deleteBtn.onclick = () => wrapper.remove();
+            wrapper.appendChild(deleteBtn);
+            
+            container.appendChild(wrapper);
             lucide.createIcons();
         }
 
         function addSkillField() {
             const container = document.getElementById('skillsContainer');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex gap-2 mb-2';
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'skills[]';
             input.placeholder = 'Contoh: PHP, Laravel';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
-            container.appendChild(input);
+            input.className = 'flex-1 border rounded px-3 py-2 focus:ring focus:ring-purple-200';
+            wrapper.appendChild(input);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-semibold';
+            deleteBtn.innerHTML = '✕';
+            deleteBtn.onclick = () => wrapper.remove();
+            wrapper.appendChild(deleteBtn);
+            
+            container.appendChild(wrapper);
             lucide.createIcons();
         }
 
-        function openEditModal(id, name, quota, periods, majors, skills, periodStart, periodEnd) {
+        function openEditModal(id, name, quota, majors, skills) {
             document.getElementById('editModal').classList.remove('hidden');
 
             document.getElementById('editName').value = name;
             document.getElementById('editQuota').value = quota;
-            document.getElementById('editPeriodStart').value = periodStart;
-            document.getElementById('editPeriodEnd').value = periodEnd;
 
             // keep route consistent with controller (PATCH to /hrd/departments/{department}/update)
             document.getElementById('editForm').action =
                 "{{ route('departments.update', ':id') }}".replace(':id', id);
 
             // Load existing data directly (no need for API fetch)
-            populateEditFormData(periods, majors, skills);
+            populateEditFormData(majors, skills);
         }
 
-        function populateEditFormData(periods, majors, skills) {
-            // Populate periods - hanya 1 field, tanpa tombol hapus
-            const periodsContainer = document.getElementById('periodsContainerEdit');
-            periodsContainer.innerHTML = '';
-            
-            if (periods && periods.length > 0) {
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.name = 'periods[]';
-                input.value = periods[0]; // Ambil periode pertama saja
-                input.min = '1';
-                input.className = 'w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200';
-                periodsContainer.appendChild(input);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.name = 'periods[]';
-                input.min = '1';
-                input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-                input.className = 'w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200';
-                periodsContainer.appendChild(input);
-            }
+        function populateEditFormData(majors, skills) {
 
             // Populate majors
             const majorsContainer = document.getElementById('majorsContainerEdit');
@@ -640,17 +495,7 @@
             }
         });
 
-        function addPeriodFieldEdit() {
-            const container = document.getElementById('periodsContainerEdit');
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.name = 'periods[]';
-            input.min = '1';
-            input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-            container.appendChild(input);
-            lucide.createIcons();
-        }
+
 
         function addMajorFieldEdit() {
             const container = document.getElementById('majorsContainerEdit');
@@ -700,122 +545,7 @@
             lucide.createIcons();
         }
 
-        function addPeriodFieldEdit() {
-            const container = document.getElementById('periodsContainerEdit');
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.name = 'periods[]';
-            input.min = '1';
-            input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-            input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-            container.appendChild(input);
-            lucide.createIcons();
-        }
 
-        // Load existing department data (periods, majors, skills)
-        function loadDepartmentData(departmentId) {
-            console.log('Loading department data for ID:', departmentId);
-            
-            fetch(`/api/departments/${departmentId}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Department data received:', data);
-                
-                // Load periods
-                const periodsContainer = document.getElementById('periodsContainerEdit');
-                periodsContainer.innerHTML = '';
-                if (data.periods && data.periods.length > 0) {
-                    data.periods.forEach(period => {
-                        const input = document.createElement('input');
-                        input.type = 'number';
-                        input.name = 'periods[]';
-                        input.value = period.duration;
-                        input.min = '1';
-                        input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-                        periodsContainer.appendChild(input);
-                    });
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'number';
-                    input.name = 'periods[]';
-                    input.min = '1';
-                    input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-                    periodsContainer.appendChild(input);
-                }
-
-                // Load majors
-                const majorsContainer = document.getElementById('majorsContainerEdit');
-                majorsContainer.innerHTML = '';
-                if (data.majors && data.majors.length > 0) {
-                    data.majors.forEach(major => {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.name = 'majors[]';
-                        input.value = major.name;
-                        input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-                        majorsContainer.appendChild(input);
-                    });
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = 'majors[]';
-                    input.placeholder = 'Contoh: Sistem Informasi';
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-green-200';
-                    majorsContainer.appendChild(input);
-                }
-
-                // Load skills
-                const skillsContainer = document.getElementById('skillsContainerEdit');
-                skillsContainer.innerHTML = '';
-                if (data.skills && data.skills.length > 0) {
-                    data.skills.forEach(skill => {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.name = 'skills[]';
-                        input.value = skill.name;
-                        input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
-                        skillsContainer.appendChild(input);
-                    });
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = 'skills[]';
-                    input.placeholder = 'Contoh: PHP, Laravel';
-                    input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-purple-200';
-                    skillsContainer.appendChild(input);
-                }
-
-                lucide.createIcons();
-            })
-            .catch(error => {
-                console.error('Error loading department data:', error);
-                // Fallback: add empty inputs
-                const periodsContainer = document.getElementById('periodsContainerEdit');
-                periodsContainer.innerHTML = '';
-                let input = document.createElement('input');
-                input.type = 'number';
-                input.name = 'periods[]';
-                input.min = '1';
-                input.placeholder = 'Contoh: 3, 4, 5, 6 bulan';
-                input.className = 'w-full border rounded px-3 py-2 mb-2 focus:ring focus:ring-blue-200';
-                periodsContainer.appendChild(input);
-                
-                addMajorFieldEdit();
-                addSkillFieldEdit();
-                lucide.createIcons();
-            });
-        }
 
         function confirmDelete(departmentId, departmentName) {
             Swal.fire({

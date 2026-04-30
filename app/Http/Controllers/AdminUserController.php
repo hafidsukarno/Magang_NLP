@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserController extends Controller
 {
     public function index() {
-        $users = User::where('role', 'hrd')->get();
-        return view('admin.users.index', compact('users'));
+        $hrdUsers      = User::where('role', 'hrd')->orderBy('name')->get();
+        $mahasiswaUsers = User::where('role', 'mahasiswa')->orderBy('name')->get();
+        return view('admin.users.index', compact('hrdUsers', 'mahasiswaUsers'));
     }
 
     public function create() {
@@ -19,45 +20,52 @@ class AdminUserController extends Controller
 
     public function store(Request $r) {
         $r->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
+            'name'     => 'required',
+            'email'    => 'required|email|unique:users',
             'password' => 'required|min:6'
         ]);
 
         User::create([
-            'name' => $r->name,
-            'email' => $r->email,
+            'name'     => $r->name,
+            'email'    => $r->email,
             'password' => Hash::make($r->password),
-            'role' => 'hrd'
+            'role'     => 'hrd'
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User HRD berhasil ditambahkan.');
     }
 
     public function update(Request $request, User $user)
-{
-    $request->validate([
-        'name'  => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
-    ]);
+    {
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+        ]);
 
-    $user->update([
-        'name'  => $request->name,
-        'email' => $request->email,
-    ]);
+        $data = [
+            'name'  => $request->name,
+            'email' => $request->email,
+        ];
 
-    return back()->with('success', 'User berhasil diperbarui');
-}
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return back()->with('success', 'User berhasil diperbarui.');
+    }
 
     public function destroy($id) {
         $user = User::findOrFail($id);
 
-        if ($user->role !== 'hrd') {
-            abort(403, "Tidak dapat menghapus user selain HRD");
+        if (!in_array($user->role, ['hrd', 'mahasiswa'])) {
+            abort(403, 'Tidak dapat menghapus user ini.');
         }
 
         $user->delete();
 
-        return back()->with('success', 'User HRD dihapus.');
+        $label = $user->role === 'hrd' ? 'HRD' : 'Mahasiswa';
+        return back()->with('success', "User {$label} berhasil dihapus.");
     }
 }

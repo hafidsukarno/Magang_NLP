@@ -182,10 +182,9 @@
                             @endphp
 
                             <tr class="hover:bg-gray-50 transition">
-                                <td class="px-2 py-1 border font-medium">{{ $firstDepartment->name }}</td>
+                                <td class="px-2 py-1 border font-medium text-left">{{ $firstDepartment->name }}</td>
                                 <td class="px-2 py-1 border text-center">
-                                    <div>
-                                        <span class="font-semibold ">{{ $quotaValue }}</span>
+                                    <span class="font-semibold ">{{ $quotaValue }}</span>
                                 </td>
                                 <td class="px-2 py-1 border text-blue-600 font-semibold">
                                     <i data-lucide="users" class="inline w-4 h-4"></i> {{ $acceptedPeople }}
@@ -205,11 +204,6 @@
                 <div id="expandedDeptWrapper" class="overflow-hidden transition-all duration-500 max-h-0 mt-1">
                     <div id="expandedDeptTable" class="overflow-x-auto">
                         <table class="w-full text-xs md:text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed">
-                            <thead class="bg-gray-50 text-gray-700 text-center">
-                                <tr>
-                                    <td colspan="4" class="border-t"></td>
-                                </tr>
-                            </thead>
                             <tbody class="text-gray-700 text-center">
                                 @foreach ($otherDepartments as $d)
                                     @php
@@ -254,17 +248,13 @@
 
                                         $remainingQuota = max(0, $quotaValue - $acceptedPeople);
                                     @endphp
-                                    <tr class="hover:bg-gray-50 transition">
-                                        <td class="px-2 py-1 border font-medium text-center">{{ $d->name }}</td>
-                                        <td class="px-2 py-1 border text-center">
-                                            <div>
-                                                <span class="font-semibold">{{ $quotaValue }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-2 py-1 border text-blue-600 font-semibold">
+                                    <tr class="hover:bg-gray-50 transition border-b">
+                                        <td class="px-2 py-1 border w-1/4 font-medium text-left">{{ $d->name }}</td>
+                                        <td class="px-2 py-1 border w-1/4 text-center font-semibold">{{ $quotaValue }}</td>
+                                        <td class="px-2 py-1 border w-1/4 text-blue-600 font-semibold">
                                             <i data-lucide="users" class="inline w-4 h-4"></i> {{ $acceptedPeople }}
                                         </td>
-                                        <td class="px-2 py-1 border">
+                                        <td class="px-2 py-1 border w-1/4">
                                             <span class="inline-flex items-center gap-1 px-1 py-0.5 rounded-lg text-xs font-semibold {{ $remainingQuota == 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
                                                 <i data-lucide="activity" class="w-3 h-3"></i> {{ $remainingQuota }}
                                             </span>
@@ -305,7 +295,6 @@
                             <th class="px-1 py-1 border">Nama</th>
                             <th class="px-1 py-1 border">Major</th>
                             <th class="px-1 py-1 border">Departemen</th>
-                            {{-- <th class="px-1 py-1 border">Score</th> --}}
                             <th class="px-1 py-1 border">Status</th>
                             <th class="px-1 py-1 border">Aksi</th>
                         </tr>
@@ -314,64 +303,54 @@
                         @foreach ($latest_applications as $a)
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-1 py-1 border">{{ $a->id }}</td>
-                                <td class="px-1 py-1 border font-medium">{{ $a->leader_name }}</td>
+                                <td class="px-1 py-1 border font-medium text-left">{{ $a->leader_name }}</td>
                                 <td class="px-1 py-1 border">{{ $a->major }}</td>
                                 <td class="px-1 py-1 border">{{ $a->department->name ?? '-' }}</td>
-                                {{-- <td class="px-1 py-1 border">
-                                    @php
-                                        $scoreColor =
-                                            is_numeric($a->score)
-                                                ? ($a->score >= 80
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : ($a->score >= 50
-                                                        ? 'bg-yellow-100 text-yellow-700'
-                                                        : 'bg-red-100 text-red-700'))
-                                                : 'bg-gray-100 text-gray-700';
-                                    @endphp
-                                    <span class="px-1 py-0.5 rounded-lg text-xs font-semibold {{ $scoreColor }}">{{ is_numeric($a->score) ? $a->score : '-' }}</span>
-                                </td> --}}
                                 <td class="px-1 py-0.5 border">
-                                    @if ($a->type === 'individual')
-                                        {{-- Individual: tampilkan leader_status --}}
-                                        @php
-                                            $statusColor =
-                                                $a->leader_status == 'menunggu'
-                                                    ? 'bg-yellow-100 text-yellow-700'
-                                                    : ($a->leader_status == 'diterima'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : ($a->leader_status == 'ditolak'
-                                                            ? 'bg-red-100 text-red-700'
-                                                            : 'bg-gray-100 text-gray-700'));
-                                        @endphp
-                                        <span class="px-1 py-0.5 text-xs font-semibold rounded-lg {{ $statusColor }}">
-                                            {{ ucfirst($a->leader_status) }}
-                                        </span>
-                                    @else
-                                        {{-- Group: tampilkan ringkasan leader + members --}}
-                                        <div class="text-xs space-y-1">
-                                            <div>
-                                                @php
-                                                    $leaderColor =
-                                                        $a->leader_status == 'menunggu'
-                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                            : ($a->leader_status == 'diterima'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : 'bg-red-100 text-red-700');
-                                                @endphp
-                                                <span class="font-semibold">K:</span>
-                                                <span class="px-1 py-0.5 rounded text-xs font-semibold ml-1 {{ $leaderColor }}">
-                                                    {{ ucfirst(substr($a->leader_status, 0, 1)) }}
-                                                </span>
+                                    <div class="flex flex-col items-center gap-1 py-1">
+                                        @if ($a->type === 'individual')
+                                            @php
+                                                $statusColor = match($a->leader_status) {
+                                                    'menunggu' => 'bg-yellow-100 text-yellow-700',
+                                                    'diterima' => 'bg-green-100 text-green-700',
+                                                    'ditolak' => 'bg-red-100 text-red-700',
+                                                    default => 'bg-gray-100 text-gray-700'
+                                                };
+                                            @endphp
+                                            <span class="px-2 py-0.5 text-[10px] font-bold rounded {{ $statusColor }}">
+                                                {{ strtoupper($a->leader_status) }}
+                                            </span>
+                                        @else
+                                            <div class="flex items-center gap-2">
+                                                {{-- Ketua Status --}}
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[9px] text-gray-400 font-bold uppercase">K</span>
+                                                    @php
+                                                        $leaderColor = match($a->leader_status) {
+                                                            'diterima' => 'bg-green-100 text-green-700',
+                                                            'ditolak' => 'bg-red-100 text-red-700',
+                                                            default => 'bg-yellow-100 text-yellow-700'
+                                                        };
+                                                    @endphp
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold {{ $leaderColor }}">
+                                                        {{ strtoupper(substr($a->leader_status, 0, 1)) }}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="w-px h-6 bg-gray-200"></div>
+
+                                                {{-- Anggota Summary --}}
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[9px] text-gray-400 font-bold uppercase">A</span>
+                                                    @php
+                                                        $accepted = $a->members->where('status', 'diterima')->count();
+                                                        $total = $a->members->count();
+                                                    @endphp
+                                                    <span class="text-[10px] font-bold text-gray-700">{{ $accepted }}/{{ $total }}</span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                @php
-                                                    $diterima = $a->members->where('status', 'diterima')->count();
-                                                    $total = $a->members->count();
-                                                @endphp
-                                                <span class="text-gray-700">A: <span class="font-semibold">{{ $diterima }}/{{ $total }}</span></span>
-                                            </div>
-                                        </div>
-                                    @endif
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-1 py-0.5 border">
                                     <a href="{{ route('hrd.application.show', $a->id) }}" class="inline-flex items-center gap-1 text-blue-600 font-semibold hover:underline text-xs">
@@ -401,10 +380,12 @@
                         wrapper.classList.remove('max-h-0');
                         wrapper.classList.add('max-h-screen');
                         expandBtn.innerText = '▲';
+                        expandBtn.style.transform = 'rotate(180deg)';
                     } else {
                         wrapper.classList.add('max-h-0');
                         wrapper.classList.remove('max-h-screen');
                         expandBtn.innerText = '▼';
+                        expandBtn.style.transform = 'rotate(0deg)';
                     }
                 });
             }
@@ -422,7 +403,7 @@
                 datasets: [{
                     data: [{{ $lolos_count }}, {{ $tidak_lolos_count }}],
                     backgroundColor: ['#22c55e', '#ef4444'],
-                    borderColor: ['#16a34a', '#dc2626'],
+                    borderColor: ['#ffffff', '#ffffff'],
                     borderWidth: 2,
                 }]
             },

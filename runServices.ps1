@@ -2,8 +2,8 @@ Write-Host "🚀 Starting all services..." -ForegroundColor Green
 Write-Host ""
 
 # Start OCR Service in background
-Write-Host "Starting OCR Service (port 8500)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$pwd\python-ocr'; python main.py"
+Write-Host "Starting OCR Service (port 5000)..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$pwd\ektrasi data identitas'; python main.py"
 
 # Wait a bit for OCR to start
 Start-Sleep -Seconds 3

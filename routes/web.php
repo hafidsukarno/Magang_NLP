@@ -7,7 +7,6 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\HRDController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\DepartmentProdiMapController;
 
 // Controllers auth
 use App\Http\Controllers\ProfileController;
@@ -47,6 +46,9 @@ Route::middleware(['auth', 'role:mahasiswa'])
 
         Route::get('/pengajuan/upload-surat', [ApplicationController::class, 'uploadSurat'])
             ->name('apply.upload-surat');
+
+        Route::post('/pengajuan/prefill', [ApplicationController::class, 'prefill'])
+            ->name('apply.prefill');
 
         Route::get('/pengajuan/create', [ApplicationController::class, 'create'])
             ->name('apply.form');
@@ -99,8 +101,8 @@ Route::middleware(['auth', 'role:hrd'])->group(function () {
     Route::get('/hrd/applications', [HRDController::class, 'applications'])
         ->name('hrd.applications.index');
 
-    Route::get('/hrd/application/{id}/file', [HRDController::class, 'viewPdf'])
-        ->name('hrd.application.viewPdf');
+    Route::get('/hrd/application/{id}/file', [HRDController::class, 'viewFile'])
+        ->name('hrd.application.viewFile');
 
     // Member approval
     Route::post('/hrd/member/{memberId}/update', [HRDController::class, 'updateMember'])
@@ -120,8 +122,6 @@ Route::middleware(['auth', 'role:hrd'])->group(function () {
     Route::patch('/hrd/departments/{department}/update', [DepartmentController::class, 'update'])
         ->name('departments.update');
 
-    Route::patch('/hrd/departments/{department}/update-period', [DepartmentController::class, 'updatePeriod'])
-        ->name('departments.updatePeriod');
 
     Route::delete('/hrd/departments/{department}', [DepartmentController::class, 'destroy'])
         ->name('departments.destroy');
@@ -132,12 +132,6 @@ Route::middleware(['auth', 'role:hrd'])->group(function () {
         [DepartmentController::class, 'accepted']
     )->name('departments.accepted');
     
-    // Department – Prodi Maps
-    Route::prefix('/hrd/departments/{department}/prodi-maps')->group(function () {
-        Route::get('/', [DepartmentProdiMapController::class, 'index'])->name('prodi-maps.index');
-        Route::post('/', [DepartmentProdiMapController::class, 'store'])->name('prodi-maps.store');
-        Route::delete('/{map}', [DepartmentProdiMapController::class, 'destroy'])->name('prodi-maps.destroy');
-    });
 });
 
 // PROFILE ROUTES - Untuk semua user yang login (admin & hrd)
