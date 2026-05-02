@@ -57,11 +57,13 @@
                 <thead class="bg-gray-50/80 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
                     <tr>
                         <th class="px-4 py-4 border-b border-gray-100 text-center rounded-tl-xl">No</th>
-                        <th class="px-4 py-4 border-b border-gray-100 text-left">Kode Pengajuan</th>
+                        <th class="px-4 py-4 border-b border-gray-100 text-left">Kode</th>
+                        <th class="px-4 py-4 border-b border-gray-100 text-left">Tanggal</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-center">Tipe</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Nama / Anggota</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Major</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Departemen</th>
+                        <th class="px-4 py-4 border-b border-gray-100 text-center">AI</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-center">Status</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-center rounded-tr-xl">Aksi</th>
                     </tr>
@@ -69,11 +71,14 @@
                 <tbody class="text-gray-700">
                     @foreach ($applications as $a)
                         <tr class="hover:bg-blue-50/30 transition-colors group">
-                            <td class="px-4 py-4 border-b border-gray-50 text-center font-medium text-gray-500">
+                            <td class="px-4 py-4 border-b border-gray-50 text-center font-semibold text-gray-600">
                                 {{ $loop->iteration + ($applications->firstItem() - 1) }}
                             </td>
-                            <td class="px-3 py-2 border font-semibold text-gray-800">
+                            <td class="px-3 py-2 border font-bold text-gray-900 text-[11px]">
                                 {{ $a->registration_code }}
+                            </td>
+                            <td class="px-3 py-2 border text-[11px] text-gray-700 font-semibold">
+                                {{ $a->created_at->format('d/m/Y') }}
                             </td>
                             <td class="px-3 py-2 border text-center">
                                 <span class="px-2 py-1 text-[10px] font-bold rounded-lg uppercase
@@ -82,14 +87,14 @@
                                     {{ ucfirst($a->type) }}
                                 </span>
                             </td>
-                            <td class="px-3 py-2 border font-medium text-left">
+                            <td class="px-3 py-2 border font-bold text-left text-gray-900">
                                 @if ($a->type === 'group')
                                     <div class="text-sm">
-                                        <div class="font-semibold text-gray-900"><span class="text-blue-600">Ketua:</span> {{ $a->leader_name }}</div>
+                                        <div class="font-bold text-gray-900"><span class="text-blue-600">Ketua:</span> {{ $a->leader_name }}</div>
                                         @if ($a->members && $a->members->count() > 0)
                                             <div class="text-gray-600 mt-1">
                                                 @foreach ($a->members as $member)
-                                                    <div class="text-xs">• {{ $member->name }}</div>
+                                                    <div class="text-xs font-semibold">• {{ $member->name }}</div>
                                                 @endforeach
                                             </div>
                                         @endif
@@ -98,8 +103,18 @@
                                     {{ $a->leader_name }}
                                 @endif
                             </td>
-                            <td class="px-3 py-2 border text-left">{{ $a->major }}</td>
-                            <td class="px-3 py-2 border text-left">{{ $a->department->name ?? '-' }}</td>
+                            <td class="px-3 py-2 border text-left font-semibold">{{ $a->major }}</td>
+                            <td class="px-3 py-2 border text-left font-semibold">{{ $a->department->name ?? '-' }}</td>
+                            <td class="px-3 py-2 border text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="text-lg font-black {{ $a->ai_score >= 80 ? 'text-green-600' : ($a->ai_score >= 50 ? 'text-blue-600' : 'text-gray-400') }}">
+                                        {{ $a->ai_score }}%
+                                    </div>
+                                    <div class="w-16 h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full {{ $a->ai_score >= 80 ? 'bg-green-500' : ($a->ai_score >= 50 ? 'bg-blue-500' : 'bg-gray-400') }}" style="width: {{ $a->ai_score }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-3 py-2 border text-center">
                                 <div class="flex flex-col items-center gap-1">
                                     {{-- Global Status --}}

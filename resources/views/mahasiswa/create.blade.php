@@ -52,11 +52,11 @@
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Departemen Tujuan</label>
                                 <div class="relative">
-                                    <select name="department_id" id="department_id"
+                                    <select name="department_id" id="department_id" required
                                         class="appearance-none w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none">
                                         <option value="">-- Pilih Departemen --</option>
                                         @foreach ($departments as $d)
-                                            <option value="{{ $d['id'] }}" data-duration="{{ $d['duration'] }}" {{ old('department_id') == $d['id'] ? 'selected' : '' }}>{{ $d['name'] }}</option>
+                                            <option value="{{ $d['id'] }}" data-duration="{{ $d['duration'] }}" {{ (old('department_id', $ocrData['department_id'] ?? '') == $d['id']) ? 'selected' : '' }}>{{ $d['name'] }}</option>
                                         @endforeach
                                     </select>
                                     <i data-lucide="briefcase" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5"></i>
@@ -125,7 +125,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">NIM</label>
                                 <div class="relative">
-                                    <input type="text" name="leader_nim" id="leader_nim" value="{{ old('leader_nim', $ocrData['members'][0]['NIM'] ?? '') }}"
+                                    <input type="text" name="leader_nim" id="leader_nim" value="{{ old('leader_nim', $ocrData['leader_nim'] ?? '') }}"
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none">
                                     <i data-lucide="hash" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5"></i>
                                 </div>
@@ -136,7 +136,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Email Aktif</label>
                                 <div class="relative">
-                                    <input type="email" name="leader_email" id="leader_email" value="{{ old('leader_email') }}"
+                                    <input type="email" name="leader_email" id="leader_email" value="{{ old('leader_email', $ocrData['leader_email'] ?? '') }}"
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="nama@email.com">
                                     <i data-lucide="mail" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5"></i>
                                 </div>
@@ -147,7 +147,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">No. WhatsApp</label>
                                 <div class="relative">
-                                    <input type="text" name="leader_phone" id="leader_phone" value="{{ old('leader_phone') }}"
+                                    <input type="text" name="leader_phone" id="leader_phone" value="{{ old('leader_phone', $ocrData['leader_phone'] ?? '') }}"
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="0812...">
                                     <i data-lucide="phone" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5"></i>
                                 </div>
@@ -233,6 +233,12 @@
                                 <div id="suratLaporanStatus" class="mt-3 hidden"></div>
                                 @error('file') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                             </div>
+
+                            <!-- Keahlian Section (Hidden from student, but sent to DB) -->
+                            <input type="hidden" name="keahlian" id="keahlian">
+                            <input type="hidden" name="surat_laporan_raw_text" id="suratLaporanRawText">
+                            <input type="hidden" name="surat_laporan_extracted_text" id="suratLaporanExtractedText">
+                            <input type="hidden" name="keahlian_raw_text" id="keahlianRawText">
                         </div>
                     </section>
 
@@ -251,11 +257,13 @@
                         </div>
 
                         <div id="membersList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            @php $memberCount = 0; @endphp
-                            
-                            <!-- Old Input Persistence -->
-                            @if(old('members'))
-                                @foreach(old('members') as $idx => $m)
+                            <!-- Old Input or Saved Data Persistence -->
+                            @php 
+                                $membersToRender = old('members') ?? ($ocrData['members'] ?? []); 
+                            @endphp
+
+                            @if(!empty($membersToRender))
+                                @foreach($membersToRender as $idx => $m)
                                     <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 relative group">
                                         <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                                             <span class="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Anggota {{ $idx + 1 }}</span>
@@ -497,8 +505,18 @@
                     const data = await res.json();
                     if (data.success) {
                         suratLaporanPath.value = data.file_path;
+                        
+                        // Capture OCR results for database (Hidden from student)
+                        if (data.keahlian) {
+                            document.getElementById('keahlian').value = data.keahlian;
+                        }
+                        if (data.raw_text) document.getElementById('suratLaporanRawText').value = data.raw_text;
+                        if (data.extracted_text) document.getElementById('suratLaporanExtractedText').value = data.extracted_text;
+                        if (data.keahlian_raw_text) document.getElementById('keahlianRawText').value = data.keahlian_raw_text;
+
                         suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-green-100 text-green-700 text-xs font-bold';
-                        suratLaporanStatus.innerHTML = '✓ UNGGAH BERHASIL';
+                        suratLaporanStatus.innerHTML = '✓ UNGGAH & SCAN BERHASIL';
+                        lucide.createIcons();
                     } else {
                         suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-red-100 text-red-700 text-xs font-bold';
                         suratLaporanStatus.innerHTML = '❌ GAGAL: ' + data.message;

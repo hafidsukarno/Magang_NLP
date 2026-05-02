@@ -121,21 +121,41 @@ class RpaScoringService
 
 
         // ---- QUOTA CHECK ----
-        $acceptedPeople = $app->department->applications()
-            ->where('status', 'diterima')
-            ->get()
-            ->sum(function ($a) {
-                return $a->type === 'group'
-                    ? $a->members()->count() + 1
-                    : 1;
+        $targetDeptId = $app->department_id;
+        $periodStart = $app->period_start;
+        $periodEnd = $app->period_end;
+        $currentPeople = $app->type === 'group' ? ($app->members()->count() + 1) : 1;
+
+        if (!$targetDeptId || !$periodStart || !$periodEnd) {
+            $quotaValid = false;
+            $quotaLeft = 0;
+        } else {
+            // 1. Get Quota Value (Period-based or Legacy)
+            $quotaRecord = \App\Models\DepartmentQuota::where('department_id', $targetDeptId)
+                ->where('period_start', '<=', $periodStart)
+                ->where('period_end', '>=', $periodEnd)
+                ->first();
+            
+            $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($app->department->quota ?? 0);
+
+            // 2. Count used slots (Accepted people overlapping the period)
+            $acceptedApps = \App\Models\Application::where('department_id', $targetDeptId)
+                ->where('status', 'diterima')
+                ->where('id', '!=', $app->id)
+                ->where(function ($q) use ($periodStart, $periodEnd) {
+                    $q->where('period_start', '<=', $periodEnd)
+                      ->where('period_end', '>=', $periodStart);
+                })
+                ->with('members')
+                ->get();
+
+            $usedPeople = $acceptedApps->sum(function ($a) {
+                return $a->type === 'group' ? ($a->members->count() + 1) : 1;
             });
 
-        $currentPeople = $app->type === 'group'
-            ? $app->members()->count() + 1
-            : 1;
-
-        $quotaLeft = $app->department->quota;
-        $quotaValid = $quotaLeft >= $currentPeople;
+            $quotaLeft = max(0, $quotaValue - $usedPeople);
+            $quotaValid = $quotaLeft >= $currentPeople;
+        }
 
         $quotaScore = $quotaValid ? $this->weights['quota_check'] : 0;
 
@@ -164,6 +184,7 @@ class RpaScoringService
 
             // Simulasikan application memakai departemen ini
             $appClone = clone $app;
+            $appClone->department_id = $dept->id;
             $appClone->department = $dept;
 
             $score = $this->computeScore($appClone, $fields);
@@ -187,19 +208,35 @@ class RpaScoringService
 
         if (!$app->department) return 'recommended_pending';
 
-        $acceptedPeople = $app->department->applications()
+        $targetDeptId = $app->department_id;
+        $periodStart = $app->period_start;
+        $periodEnd = $app->period_end;
+        $currentPeople = $app->type === 'group' ? ($app->members()->count() + 1) : 1;
+
+        // Count used slots overlapping the period
+        $acceptedApps = \App\Models\Application::where('department_id', $targetDeptId)
             ->where('status', 'diterima')
             ->where('id', '!=', $app->id)
-            ->get()
-            ->sum(function ($a) {
-                return $a->type === 'group' ? $a->members()->count() + 1 : 1;
-            });
+            ->where(function ($q) use ($periodStart, $periodEnd) {
+                $q->where('period_start', '<=', $periodEnd)
+                  ->where('period_end', '>=', $periodStart);
+            })
+            ->with('members')
+            ->get();
 
-        $quotaLeft = $app->department->quota - $acceptedPeople;
+        $usedPeople = $acceptedApps->sum(function ($a) {
+            return $a->type === 'group' ? ($a->members->count() + 1) : 1;
+        });
 
-        $currentPeople = $app->type === 'group'
-            ? $app->members()->count() + 1
-            : 1;
+        // Get Quota
+        $quotaRecord = \App\Models\DepartmentQuota::where('department_id', $targetDeptId)
+            ->where('period_start', '<=', $periodStart)
+            ->where('period_end', '>=', $periodEnd)
+            ->first();
+        
+        $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($app->department->quota ?? 0);
+
+        $quotaLeft = max(0, $quotaValue - $usedPeople);
 
         if ($quotaLeft < $currentPeople) return 'recommended_pending';
 

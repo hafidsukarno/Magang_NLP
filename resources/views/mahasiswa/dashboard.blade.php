@@ -1,5 +1,19 @@
 @section('title', 'Dashboard Mahasiswa')
 <x-app-layout>
+@if (session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "{{ session('success') }}",
+                confirmButtonColor: '#2563eb',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        });
+    </script>
+@endif
 <div class="p-6 bg-gray-50 min-h-screen">
     <!-- BREADCRUMB -->
     <div class="mb-6 flex items-center gap-2 text-sm text-gray-500">
@@ -148,7 +162,7 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-8 py-5 text-right">
+                             <td class="px-8 py-5 text-right">
                                 <a href="{{ route('mahasiswa.applications.show', $app->id) }}" 
                                    class="inline-flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">
                                     Lihat

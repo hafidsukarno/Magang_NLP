@@ -31,11 +31,14 @@ class Application extends Model
         'leader_note',
         'surat_permohonan_path',
         'surat_permohonan_extracted_text',
+        'surat_permohonan_raw_text',
         'surat_permohonan_nama',
         'surat_permohonan_major',
         'surat_permohonan_type',
+        'keahlian_raw_text',
         'surat_laporan_path',
         'surat_laporan_extracted_text',
+        'surat_laporan_raw_text',
         'surat_laporan_title',
     ];
 

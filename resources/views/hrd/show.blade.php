@@ -216,32 +216,49 @@
             </div>
         </div>
 
-        <!-- OCR Raw Text Section -->
+        <!-- OCR Raw Text Section (Permohonan) -->
         @if($app->surat_permohonan_extracted_text)
         <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div class="bg-gray-50/50 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <i data-lucide="file-search" class="w-4 h-4 text-blue-600"></i>
-                    Isi Dokumen Terbaca (OCR Raw Text)
+                    Isi Surat Permohonan (OCR Raw Text)
                 </h3>
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
-                        {{ strlen($app->surat_permohonan_extracted_text) }} Karakter Terbaca
+                        {{ strlen($app->surat_permohonan_extracted_text) }} Karakter
                     </span>
                 </div>
             </div>
             <div class="p-8">
-                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-80 overflow-y-auto shadow-inner relative group">
-                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i data-lucide="scroll-text" class="w-5 h-5 text-gray-300"></i>
-                    </div>
-                    <p class="text-xs text-gray-600 font-serif leading-relaxed whitespace-pre-wrap italic selection:bg-blue-100 selection:text-blue-900">
-                        {{ $app->surat_permohonan_extracted_text }}
-                    </p>
+                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner relative group font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
+                    {{ $app->surat_permohonan_extracted_text }}
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <!-- OCR Cleaned Text Section (Laporan) -->
+        @if($app->keahlian_raw_text)
+        <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div class="bg-gray-50/50 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <i data-lucide="file-check" class="w-4 h-4 text-blue-600"></i>
+                    Isi Surat Laporan (Cleaned Text)
+                </h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
+                        {{ strlen($app->keahlian_raw_text) }} Karakter
+                    </span>
+                </div>
+            </div>
+            <div class="p-8">
+                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner relative group font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
+                    {{ $app->keahlian_raw_text }}
                 </div>
                 <p class="text-[10px] text-gray-400 mt-3 italic flex items-center gap-1.5">
                     <i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i>
-                    Data di atas adalah representasi teks langsung dari dokumen PDF yang diunggah.
+                    Teks di atas adalah hasil pembersihan (pre-processing) otomatis oleh AI dari dokumen laporan.
                 </p>
             </div>
         </div>
@@ -273,6 +290,24 @@
                         <p class="text-sm text-gray-500 leading-relaxed">
                             Mahasiswa dari latar belakang <span class="font-bold text-gray-700 italic">{{ $app->major }}</span> dinilai memiliki korelasi kompetensi yang {{ $score >= 80 ? 'sangat baik' : ($score >= 50 ? 'cukup' : 'rendah') }} dengan departemen tujuan.
                         </p>
+
+                        <!-- Scoring Breakdown -->
+                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            @foreach($breakdown as $item)
+                            <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col justify-between group hover:border-blue-200 transition-colors">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="p-1.5 rounded-lg {{ str_replace('text-', 'bg-', $item['color']) }} bg-opacity-10">
+                                        <i data-lucide="{{ $item['icon'] }}" class="w-3.5 h-3.5 {{ $item['color'] }}"></i>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{{ $item['label'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-gray-700">{{ $item['status'] }}</span>
+                                    <span class="text-[11px] font-black {{ $item['points'] > 0 ? 'text-blue-600' : 'text-gray-400' }}">{{ $item['points'] }} pts</span>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 
@@ -377,7 +412,22 @@
 
             <!-- Members & Leader Table -->
             <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">Member(s)</h2>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold">Member(s)</h2>
+                    
+                    @if($app->type === 'group' && $app->status === 'menunggu')
+                        <div class="flex gap-2">
+                            <button type="button" onclick="bulkApproveGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
+                                <i data-lucide="check-check" class="w-4 h-4"></i>
+                                Terima Seluruh Kelompok
+                            </button>
+                            <button type="button" onclick="bulkRejectGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
+                                <i data-lucide="users-2" class="w-4 h-4"></i>
+                                Tolak Seluruh Kelompok
+                            </button>
+                        </div>
+                    @endif
+                </div>
 
                 <div class="overflow-x-auto">
                     <table class="min-w-full border-collapse">
@@ -387,7 +437,6 @@
                                 <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nama & Identitas</th>
                                 <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kontak</th>
                                 <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -405,32 +454,23 @@
                                         <p class="text-xs text-gray-500">{{ $app->leader_phone ?? '-' }}</p>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                            @if ($app->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
-                                            @elseif($app->leader_status == 'diterima') bg-green-100 text-green-700
-                                            @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
-                                            @else bg-gray-100 text-gray-700 @endif">
-                                            {{ $app->leader_status }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        @if($app->leader_status == 'menunggu')
-                                            <div class="flex gap-2 justify-center">
-                                                <button type="button" onclick="approveLead()" class="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition shadow-sm border border-green-100" title="Terima">
-                                                    <i data-lucide="check" class="w-4 h-4"></i>
-                                                </button>
-                                                <button type="button" onclick="openActionModal('diproses')" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm border border-blue-100" title="Pindahkan Departemen">
-                                                    <i data-lucide="shuffle" class="w-4 h-4"></i>
-                                                </button>
-                                                <button type="button" onclick="rejectLead()" class="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm border border-red-100" title="Tolak">
-                                                    <i data-lucide="x" class="w-4 h-4"></i>
-                                                </button>
-                                            </div>
+                                        @if ($app->leader_status == 'menunggu')
+                                            @if ($compatibility['total'] > 60)
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
+                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
+                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                </span>
+                                            @endif
                                         @else
-                                            <div class="flex items-center justify-center gap-1 text-gray-400 opacity-50">
-                                                <i data-lucide="lock" class="w-3 h-3"></i>
-                                                <span class="text-[10px] font-bold uppercase tracking-tighter">Keputusan Final</span>
-                                            </div>
+                                            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
+                                                @if($app->leader_status == 'diterima') bg-green-100 text-green-700
+                                                @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
+                                                @else bg-gray-100 text-gray-700 @endif">
+                                                {{ $app->leader_status }}
+                                            </span>
                                         @endif
                                     </td>
                                 </tr>
@@ -449,38 +489,30 @@
                                             <p class="text-xs text-gray-500">{{ $app->leader_phone ?? '-' }}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                                @if ($app->leader_status == 'menunggu') bg-yellow-100 text-yellow-700
-                                                @elseif($app->leader_status == 'diterima') bg-green-100 text-green-700
-                                                @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
-                                                @else bg-gray-100 text-gray-700 @endif">
-                                                {{ $app->leader_status }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-center">
-                                            @if($app->leader_status == 'menunggu')
-                                                <div class="flex gap-2 justify-center">
-                                                    <button type="button" onclick="approveLead()" class="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition shadow-sm border border-green-100" title="Terima">
-                                                        <i data-lucide="check" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button type="button" onclick="openActionModal('diproses')" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm border border-blue-100" title="Pindahkan Departemen">
-                                                        <i data-lucide="shuffle" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button type="button" onclick="rejectLead()" class="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm border border-red-100" title="Tolak">
-                                                        <i data-lucide="x" class="w-4 h-4"></i>
-                                                    </button>
-                                                </div>
+                                            @if ($app->leader_status == 'menunggu')
+                                                @if ($compatibility['total'] > 60)
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                    </span>
+                                                @endif
                                             @else
-                                                <div class="flex items-center justify-center gap-1 text-gray-400 opacity-50">
-                                                    <i data-lucide="lock" class="w-3 h-3"></i>
-                                                    <span class="text-[10px] font-bold uppercase tracking-tighter">Keputusan Final</span>
-                                                </div>
+                                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
+                                                    @if($app->leader_status == 'diterima') bg-green-100 text-green-700
+                                                    @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
+                                                    @else bg-gray-100 text-gray-700 @endif">
+                                                    {{ $app->leader_status }}
+                                                </span>
                                             @endif
                                         </td>
                                     </tr>
                                 @endif
-
+ 
                                 @foreach ($app->members as $member)
+                                    @if($member->name != $app->leader_name)
                                     <tr class="hover:bg-gray-50 transition">
                                         <td class="px-6 py-4">
                                             <span class="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-md uppercase">Anggota</span>
@@ -494,35 +526,27 @@
                                             <p class="text-xs text-gray-500">{{ $member->phone ?? '-' }}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                                @if ($member->status == 'menunggu') bg-yellow-100 text-yellow-700
-                                                @elseif($member->status == 'diterima') bg-green-100 text-green-700
-                                                @elseif($member->status == 'ditolak') bg-red-100 text-red-700
-                                                @else bg-gray-100 text-gray-700 @endif">
-                                                {{ $member->status }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-center">
-                                            @if($member->status == 'menunggu')
-                                                <div class="flex gap-2 justify-center">
-                                                    <button type="button" onclick="approveMember({{ $member->id }})" class="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition shadow-sm border border-green-100" title="Terima">
-                                                        <i data-lucide="check" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button type="button" onclick="openActionModal('diproses')" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm border border-blue-100" title="Pindahkan Departemen">
-                                                        <i data-lucide="shuffle" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button type="button" onclick="rejectMember({{ $member->id }})" class="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm border border-red-100" title="Tolak">
-                                                        <i data-lucide="x" class="w-4 h-4"></i>
-                                                    </button>
-                                                </div>
+                                            @if ($member->status == 'menunggu')
+                                                @if ($compatibility['total'] > 60)
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                    </span>
+                                                @endif
                                             @else
-                                                <div class="flex items-center justify-center gap-1 text-gray-400 opacity-50">
-                                                    <i data-lucide="lock" class="w-3 h-3"></i>
-                                                    <span class="text-[10px] font-bold uppercase tracking-tighter">Keputusan Final</span>
-                                                </div>
+                                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
+                                                    @if($member->status == 'diterima') bg-green-100 text-green-700
+                                                    @elseif($member->status == 'ditolak') bg-red-100 text-red-700
+                                                    @else bg-gray-100 text-gray-700 @endif">
+                                                    {{ $member->status }}
+                                                </span>
                                             @endif
                                         </td>
                                     </tr>
+                                    @endif
                                 @endforeach
                             @endif
                         </tbody>
@@ -600,6 +624,65 @@
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
         });
+
+        function bulkApproveGroup() {
+            Swal.fire({
+                title: 'Terima Seluruh Kelompok?',
+                text: "Status ketua dan semua anggota akan diubah menjadi DITERIMA.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Terima Semua',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Direct submit
+                    document.getElementById('modalStatusInput').value = 'diterima';
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    document.getElementById('hrdActionForm').submit();
+                }
+            });
+        }
+
+        function bulkRejectGroup() {
+            Swal.fire({
+                title: 'Tolak Seluruh Kelompok?',
+                text: "Berikan alasan penolakan untuk seluruh kelompok ini:",
+                input: 'textarea',
+                inputPlaceholder: 'Contoh: Kuota penuh atau dokumen tidak lengkap...',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Tolak Semua',
+                cancelButtonText: 'Batal',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Alasan penolakan wajib diisi!'
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Set note and submit
+                    document.getElementById('modalStatusInput').value = 'ditolak';
+                    document.getElementById('modal_hrd_note').value = result.value;
+                    
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    document.getElementById('hrdActionForm').submit();
+                }
+            });
+        }
 
         function openActionModal(status) {
             const modal = document.getElementById('mainActionModal');

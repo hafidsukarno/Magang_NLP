@@ -57,12 +57,18 @@ class ApplicationController extends Controller
                     'tanggal_masuk'  => $existingApp->period_start ? $existingApp->period_start->format('Y-m-d') : null,
                     'tanggal_keluar' => $existingApp->period_end ? $existingApp->period_end->format('Y-m-d') : null,
                     'type'           => $existingApp->type,
+                    'leader_nim'     => $existingApp->leader_nim,
+                    'leader_email'   => $existingApp->leader_email,
+                    'leader_phone'   => $existingApp->leader_phone,
+                    'department_id'  => $existingApp->department_id,
                     'surat_permohonan_path' => $existingApp->surat_permohonan_path,
                     'members'        => $existingApp->members->map(function($m) {
                         return [
-                            'Nama' => $m->name,
-                            'NIM'  => $m->nim,
-                            'Prodi' => $m->major
+                            'name'  => $m->name,
+                            'nim'   => $m->nim,
+                            'email' => $m->email,
+                            'phone' => $m->phone,
+                            'major' => $m->major
                         ];
                     })->toArray(),
                 ];
@@ -187,7 +193,7 @@ class ApplicationController extends Controller
             'major' => 'required|string|max:255',
             'keahlian' => 'nullable|string',
             'program_studi' => 'required|string|max:255',
-            'department_id' => 'nullable|exists:departments,id',
+            'department_id' => 'required|exists:departments,id',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
         ]);
@@ -215,12 +221,8 @@ class ApplicationController extends Controller
                 $acceptedPeople = Application::where('department_id', $departmentId)
                     ->where('status', 'diterima')
                     ->where(function ($q) use ($periodStart, $periodEnd) {
-                        $q->whereBetween('period_start', [$periodStart, $periodEnd])
-                          ->orWhereBetween('period_end', [$periodStart, $periodEnd])
-                          ->orWhere(function($qq) use ($periodStart, $periodEnd) {
-                              $qq->where('period_start', '<=', $periodStart)
-                                 ->where('period_end', '>=', $periodEnd);
-                          });
+                        $q->where('period_start', '<=', $periodEnd)
+                          ->where('period_end', '>=', $periodStart);
                     })->get()->sum(fn($a) => $a->type === 'group' ? ($a->members->count() + 1) : 1);
 
                 if (($acceptedPeople + $neededPeople) > $quotaValue) {
@@ -263,6 +265,12 @@ class ApplicationController extends Controller
             $app->status = 'menunggu';
             $app->leader_status = 'menunggu';
 
+            // Save OCR Raw Data from Report
+            if ($r->surat_laporan_path) $app->surat_laporan_path = $r->surat_laporan_path;
+            if ($r->surat_laporan_raw_text) $app->surat_laporan_raw_text = $r->surat_laporan_raw_text;
+            if ($r->surat_laporan_extracted_text) $app->surat_laporan_extracted_text = $r->surat_laporan_extracted_text;
+            if ($r->keahlian_raw_text) $app->keahlian_raw_text = $r->keahlian_raw_text;
+
             if ($r->hasFile('file')) {
                 $app->file_path = $r->file('file')->store('magang_uploads', 'public');
             }
@@ -277,13 +285,18 @@ class ApplicationController extends Controller
                     $member->application_id = $app->id;
                     $member->name = $m['name'];
                     $member->nim = $m['nim'] ?? '-';
+                    $member->email = $m['email'] ?? '-';
+                    $member->phone = $m['phone'] ?? '-';
                     $member->major = $m['major'] ?? '-';
                     $member->status = 'menunggu';
                     $member->save();
                 }
             }
+            $isEdit = $r->filled('application_id');
             DB::commit();
-            return redirect()->route('mahasiswa.dashboard')->with('success', 'Pengajuan berhasil dikirim!');
+            
+            $msg = $isEdit ? 'Pengajuan berhasil diperbarui!' : 'Pengajuan berhasil dikirim!';
+            return redirect()->route('mahasiswa.dashboard')->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Store Error: " . $e->getMessage());
@@ -349,5 +362,44 @@ class ApplicationController extends Controller
     {
         $app = Application::with('members', 'department')->where('user_id', auth()->id())->findOrFail($id);
         return view('mahasiswa.show', compact('app'));
+    }
+
+    public function edit($id)
+    {
+        $app = Application::where('user_id', auth()->id())->findOrFail($id);
+
+        // Cek apakah boleh diedit
+        if ($app->status !== 'menunggu' && $app->status !== 'pending') {
+            return redirect()->route('mahasiswa.dashboard')->with('error', 'Pengajuan yang sudah diproses tidak dapat diubah.');
+        }
+
+        return redirect()->route('apply.form', ['type' => $app->type, 'id' => $app->id]);
+    }
+
+    public function update(Request $r, $id)
+    {
+        // Logika update mirip store, kita bisa arahkan store untuk handle update jika ada ID
+        return $this->store($r);
+    }
+
+    public function destroy($id)
+    {
+        $app = Application::where('user_id', auth()->id())->findOrFail($id);
+
+        // Cek apakah boleh dihapus
+        if ($app->status !== 'menunggu' && $app->status !== 'pending') {
+            return redirect()->route('mahasiswa.dashboard')->with('error', 'Pengajuan yang sudah diproses tidak dapat dihapus.');
+        }
+
+        DB::beginTransaction();
+        try {
+            ApplicationMember::where('application_id', $app->id)->delete();
+            $app->delete();
+            DB::commit();
+            return redirect()->route('mahasiswa.dashboard')->with('success', 'Pengajuan berhasil dihapus.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menghapus pengajuan.');
+        }
     }
 }

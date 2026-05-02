@@ -37,31 +37,9 @@ class HRDController extends Controller {
         $deptRecommendations = [];
 
         foreach ($allDepts as $dept) {
-            // Calculate available slots
-            $quotaValue = (int)($dept->quota ?? 0);
+            // Calculate available slots via helper
+            $availability = $this->getQuotaAvailability($dept, $app);
             
-            // Count accepted people for this department overlapping the app period
-            $acceptedApps = Application::where('department_id', $dept->id)
-                ->where('status', 'diterima')
-                ->where('id', '!=', $app->id)
-                ->where(function ($q) use ($app) {
-                    $q->whereBetween('period_start', [$app->period_start, $app->period_end])
-                      ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
-                      ->orWhere(function($qq) use ($app) {
-                          $qq->where('period_start', '<=', $app->period_start)
-                             ->where('period_end', '>=', $app->period_end);
-                      });
-                })
-                ->with('members')
-                ->get();
-
-            $usedPeople = $acceptedApps->sum(function ($a) {
-                return $a->type === 'group' ? ($a->members->count() + 1) : 1;
-            });
-            
-            $availableSlots = max(0, $quotaValue - $usedPeople);
-            $appPeopleCount = $app->type === 'group' ? ($app->members->count() + 1) : 1;
-
             $calc = $this->calculateCompatibility($app, $dept);
             $deptRecommendations[] = [
                 'id' => $dept->id,
@@ -70,8 +48,8 @@ class HRDController extends Controller {
                 'is_current' => $app->department_id == $dept->id,
                 'target_majors' => $dept->majors->pluck('name')->toArray(),
                 'target_skills' => $dept->skills->pluck('name')->toArray(),
-                'available_slots' => $availableSlots,
-                'can_fit' => $availableSlots >= $appPeopleCount
+                'available_slots' => $availability['available'],
+                'can_fit' => $availability['can_fit']
             ];
         }
 
@@ -81,8 +59,9 @@ class HRDController extends Controller {
         });
 
         $departments = $allDepts;
+        $compatibility = $currentCalc; // Set compatibility for the blade
 
-        return view('hrd.show', compact('app', 'departments', 'score', 'breakdown', 'deptRecommendations'));
+        return view('hrd.show', compact('app', 'departments', 'score', 'breakdown', 'deptRecommendations', 'compatibility'));
     }
 
     /**
@@ -100,7 +79,7 @@ class HRDController extends Controller {
         $studentProdi = strtolower($app->program_studi ?? '');
         $studentSkills = strtolower($app->keahlian ?? '');
 
-        // 1. Major Match (Base 80%)
+        // 1. Major Match (Base 60%)
         $majorMatch = false;
         if ($dept->majors->count() > 0) {
             foreach ($dept->majors as $m) {
@@ -121,10 +100,10 @@ class HRDController extends Controller {
         }
 
         if ($majorMatch) {
-            $totalScore += 80;
+            $totalScore += 60;
             $breakdown[] = [
                 'label' => "Kesesuaian Jurusan ($matchedRequirement)",
-                'points' => 80,
+                'points' => 60,
                 'status' => 'Cocok',
                 'icon' => 'graduation-cap',
                 'color' => 'text-green-600'
@@ -167,7 +146,74 @@ class HRDController extends Controller {
             }
         }
 
-        return ['total' => $totalScore, 'breakdown' => $breakdown];
+        // 3. Quota & Period Match (Max 20%)
+        $availability = $this->getQuotaAvailability($dept, $app);
+        
+        if ($availability['can_fit']) {
+            $totalScore += 20;
+            $breakdown[] = [
+                'label' => "Ketersediaan Kuota & Periode (" . $availability['available'] . " slot)",
+                'points' => 20,
+                'status' => 'Tersedia',
+                'icon' => 'calendar',
+                'color' => 'text-green-600'
+            ];
+        } else {
+            $breakdown[] = [
+                'label' => "Ketersediaan Kuota & Periode (" . $availability['available'] . " slot)",
+                'points' => 0,
+                'status' => 'Penuh/Tidak Cukup',
+                'icon' => 'calendar',
+                'color' => 'text-red-600'
+            ];
+        }
+
+        return ['total' => min(100, $totalScore), 'breakdown' => $breakdown];
+    }
+
+    /**
+     * Helper to calculate quota availability for a specific department and application period
+     */
+    private function getQuotaAvailability($dept, $app) {
+        if (!$dept || !$app || !$app->period_start || !$app->period_end) {
+            return ['quota' => 0, 'used' => 0, 'available' => 0, 'can_fit' => false];
+        }
+
+        $periodStart = $app->period_start;
+        $periodEnd = $app->period_end;
+        $appPeopleCount = $app->type === 'group' ? ($app->members->count() + 1) : 1;
+
+        // 1. Get Quota Value (Period-based or Legacy)
+        $quotaRecord = DepartmentQuota::where('department_id', $dept->id)
+            ->where('period_start', '<=', $periodStart)
+            ->where('period_end', '>=', $periodEnd)
+            ->first();
+        
+        $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($dept->quota ?? 0);
+
+        // 2. Count used slots (Accepted people overlapping the period)
+        $acceptedApps = Application::where('department_id', $dept->id)
+            ->where('status', 'diterima')
+            ->where('id', '!=', $app->id)
+            ->where(function ($q) use ($periodStart, $periodEnd) {
+                $q->where('period_start', '<=', $periodEnd)
+                  ->where('period_end', '>=', $periodStart);
+            })
+            ->with('members')
+            ->get();
+
+        $usedPeople = $acceptedApps->sum(function ($a) {
+            return $a->type === 'group' ? ($a->members->count() + 1) : 1;
+        });
+
+        $availableSlots = max(0, $quotaValue - $usedPeople);
+
+        return [
+            'quota' => $quotaValue,
+            'used' => $usedPeople,
+            'available' => $availableSlots,
+            'can_fit' => $availableSlots >= $appPeopleCount
+        ];
     }
 
     public function applications()
@@ -201,6 +247,12 @@ class HRDController extends Controller {
             ->latest()
             ->paginate(10)
             ->withQueryString();
+
+        // Calculate score for each app
+        foreach ($applications as $a) {
+            $calc = $this->calculateCompatibility($a, $a->department);
+            $a->ai_score = $calc['total'];
+        }
 
         return view('hrd.applications', compact('applications'));
     }
@@ -264,12 +316,8 @@ class HRDController extends Controller {
                         ->where('status', 'diterima')
                         ->where('id', '!=', $app->id)
                         ->where(function ($q) use ($app) {
-                            $q->whereBetween('period_start', [$app->period_start, $app->period_end])
-                              ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
-                              ->orWhere(function($qq) use ($app) {
-                                  $qq->where('period_start', '<=', $app->period_start)
-                                     ->where('period_end', '>=', $app->period_end);
-                              });
+                            $q->where('period_start', '<=', $app->period_end)
+                              ->where('period_end', '>=', $app->period_start);
                         })
                         ->get();
 
@@ -303,6 +351,27 @@ class HRDController extends Controller {
             }
 
             $app->save();
+
+            // SINKRONISASI MASSAL UNTUK KELOMPOK
+            // Jika status utama diubah (Diterima/Ditolak), samakan status ketua dan semua anggota
+            if ($app->type === 'group' && in_array($newStatus, ['diterima', 'ditolak'])) {
+                $app->leader_status = $newStatus;
+                $app->leader_note = $r->hrd_note;
+                $app->save();
+
+                foreach ($app->members as $member) {
+                    $member->status = $newStatus;
+                    if ($newStatus === 'ditolak') {
+                        $member->hrd_note = $r->hrd_note;
+                    }
+                    $member->save();
+                }
+            } elseif ($app->type === 'individual') {
+                // Untuk individual, status aplikasi = status leader
+                $app->leader_status = $newStatus;
+                $app->leader_note = $r->hrd_note;
+                $app->save();
+            }
 
             DB::commit();
             return back()->with('success','Data berhasil diperbarui.');
@@ -404,12 +473,8 @@ class HRDController extends Controller {
                     $existingApps = Application::where('department_id', $targetDeptId)
                         ->where('id', '!=', $app->id)
                         ->where(function ($q) use ($app) {
-                            $q->whereBetween('period_start', [$app->period_start, $app->period_end])
-                              ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
-                              ->orWhere(function($qq) use ($app) {
-                                  $qq->where('period_start', '<=', $app->period_start)
-                                     ->where('period_end', '>=', $app->period_end);
-                              });
+                            $q->where('period_start', '<=', $app->period_end)
+                              ->where('period_end', '>=', $app->period_start);
                         })
                         ->get();
 
@@ -511,12 +576,8 @@ class HRDController extends Controller {
                     $existingApps = Application::where('department_id', $targetDeptId)
                         ->where('id', '!=', $app->id)
                         ->where(function ($q) use ($app) {
-                            $q->whereBetween('period_start', [$app->period_start, $app->period_end])
-                              ->orWhereBetween('period_end', [$app->period_start, $app->period_end])
-                              ->orWhere(function($qq) use ($app) {
-                                  $qq->where('period_start', '<=', $app->period_start)
-                                     ->where('period_end', '>=', $app->period_end);
-                              });
+                            $q->where('period_start', '<=', $app->period_end)
+                              ->where('period_end', '>=', $app->period_start);
                         })
                         ->get();
 

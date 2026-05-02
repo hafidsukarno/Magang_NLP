@@ -151,12 +151,8 @@
                                 if ($activeQuota) {
                                     $appsInPeriod = \App\Models\Application::where('department_id', $firstDepartment->id)
                                         ->where(function($q) use ($activeQuota) {
-                                            $q->whereBetween('period_start', [$activeQuota->period_start, $activeQuota->period_end])
-                                              ->orWhereBetween('period_end', [$activeQuota->period_start, $activeQuota->period_end])
-                                              ->orWhere(function($qq) use ($activeQuota) {
-                                                  $qq->where('period_start','<=',$activeQuota->period_start)
-                                                     ->where('period_end','>=',$activeQuota->period_end);
-                                              });
+                                            $q->where('period_start', '<=', $activeQuota->period_end)
+                                              ->where('period_end', '>=', $activeQuota->period_start);
                                         })->get();
                                 } else {
                                     $appsInPeriod = $firstDepartment->applications()->get();
@@ -219,12 +215,8 @@
                                         if ($activeQuota) {
                                             $appsInPeriod = \App\Models\Application::where('department_id', $d->id)
                                                 ->where(function($q) use ($activeQuota) {
-                                                    $q->whereBetween('period_start', [$activeQuota->period_start, $activeQuota->period_end])
-                                                      ->orWhereBetween('period_end', [$activeQuota->period_start, $activeQuota->period_end])
-                                                      ->orWhere(function($qq) use ($activeQuota) {
-                                                          $qq->where('period_start','<=',$activeQuota->period_start)
-                                                             ->where('period_end','>=',$activeQuota->period_end);
-                                                      });
+                                                    $q->where('period_start', '<=', $activeQuota->period_end)
+                                                      ->where('period_end', '>=', $activeQuota->period_start);
                                                 })->get();
                                         } else {
                                             $appsInPeriod = $d->applications()->get();
@@ -293,6 +285,7 @@
                         <tr>
                             <th class="px-1 py-1 border">No</th>
                             <th class="px-1 py-1 border">Nama</th>
+                            <th class="px-1 py-1 border">Tanggal</th>
                             <th class="px-1 py-1 border">Major</th>
                             <th class="px-1 py-1 border">Departemen</th>
                             <th class="px-1 py-1 border">Status</th>
@@ -302,10 +295,13 @@
                     <tbody class="text-gray-700 text-center">
                         @foreach ($latest_applications as $a)
                             <tr class="hover:bg-gray-50 transition">
-                                <td class="px-1 py-1 border">{{ $a->id }}</td>
-                                <td class="px-1 py-1 border font-medium text-left">{{ $a->leader_name }}</td>
-                                <td class="px-1 py-1 border">{{ $a->major }}</td>
-                                <td class="px-1 py-1 border">{{ $a->department->name ?? '-' }}</td>
+                                <td class="px-1 py-1 border font-semibold">{{ $loop->iteration }}</td>
+                                <td class="px-1 py-1 border font-bold text-left text-gray-900">{{ $a->leader_name }}</td>
+                                <td class="px-1 py-1 border text-[10px] text-gray-700 font-semibold whitespace-nowrap">
+                                    {{ $a->created_at->format('d M Y') }}
+                                </td>
+                                <td class="px-1 py-1 border font-semibold">{{ $a->major }}</td>
+                                <td class="px-1 py-1 border font-semibold text-gray-800">{{ $a->department->name ?? '-' }}</td>
                                 <td class="px-1 py-0.5 border">
                                     <div class="flex flex-col items-center gap-1 py-1">
                                         @if ($a->type === 'individual')

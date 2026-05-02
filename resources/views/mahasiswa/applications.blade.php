@@ -130,11 +130,27 @@
                                 </div>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                <a href="{{ route('mahasiswa.applications.show', $app->id) }}" 
-                                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
-                                    Detail
-                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-                                </a>
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('mahasiswa.applications.show', $app->id) }}" 
+                                       class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm" title="Lihat Detail">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </a>
+
+                                    @if($app->status === 'menunggu' || $app->status === 'pending')
+                                        <a href="{{ route('mahasiswa.applications.edit', $app->id) }}" 
+                                           class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-sm" title="Edit Pengajuan">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </a>
+
+                                        <form action="{{ route('mahasiswa.applications.destroy', $app->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengajuan ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Hapus Pengajuan">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

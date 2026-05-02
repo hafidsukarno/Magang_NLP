@@ -14,8 +14,12 @@ use App\Http\Controllers\ProfileController;
 // Controller Admin
 use App\Http\Controllers\AdminUserController;
 
+use App\Http\Controllers\LandingController;
+
 //   PUBLIC ROUTES
-Route::get('/', fn() => redirect()->route('login'));
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/check-quota', [LandingController::class, 'checkQuota'])->name('quota.check');
+
 
 Route::get('/pengumuman', [AnnouncementController::class, 'index'])->name('pengumuman.index');
 
@@ -61,6 +65,15 @@ Route::middleware(['auth', 'role:mahasiswa'])
 
         Route::get('/pengajuan/{id}', [ApplicationController::class, 'mahasiswaShow'])
             ->name('mahasiswa.applications.show');
+
+        Route::get('/pengajuan/{id}/edit', [ApplicationController::class, 'edit'])
+            ->name('mahasiswa.applications.edit');
+
+        Route::patch('/pengajuan/{id}', [ApplicationController::class, 'update'])
+            ->name('mahasiswa.applications.update');
+
+        Route::delete('/pengajuan/{id}', [ApplicationController::class, 'destroy'])
+            ->name('mahasiswa.applications.destroy');
     });
 
 //   ADMIN ROUTES
