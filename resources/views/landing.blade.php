@@ -32,16 +32,16 @@
 
 <body class="bg-white text-gray-700 antialiased">
 
-    <nav class="flex justify-between items-center py-4 px-10 bg-brand-lightblue/50">
+    <nav class="sticky top-0 z-50 flex justify-between items-center py-4 px-10 bg-brand-lightblue/50 backdrop-blur-md border-b border-brand-blue/5">
         <div class="flex items-center">
             <img src="{{ asset('img/logo.png') }}" alt="Logo" class="h-10">
         </div>
         <div class="hidden md:flex space-x-8 font-medium text-brand-text">
-            <a href="#home" class="hover:text-brand-blue font-semibold text-brand-blue">Home</a>
-            <a href="#cek-kuota" class="hover:text-brand-blue">Cek Kuota</a>
-            <a href="#alur" class="hover:text-brand-blue">Prosedur Magang</a>
-            <a href="#tentang" class="hover:text-brand-blue">Tentang</a>
-            <a href="#kontak" class="hover:text-brand-blue">Kontak</a>
+            <a href="#home" class="hover:text-brand-blue font-semibold text-brand-blue transition">Home</a>
+            <a href="#cek-kuota" class="hover:text-brand-blue transition">Cek Kuota</a>
+            <a href="#alur" class="hover:text-brand-blue transition">Prosedur Magang</a>
+            <a href="#tentang" class="hover:text-brand-blue transition">Tentang</a>
+            <a href="#kontak" class="hover:text-brand-blue transition">Kontak</a>
         </div>
         <div class="flex space-x-3">
             <a href="{{ route('register') }}"
