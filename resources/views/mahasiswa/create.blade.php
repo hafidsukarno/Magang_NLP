@@ -212,6 +212,7 @@
                                     <p class="text-xs text-green-600 opacity-80">Dokumen telah di-scan dan divalidasi pada tahap sebelumnya.</p>
                                 </div>
                                 <input type="hidden" name="surat_permohonan_path" value="{{ old('surat_permohonan_path', $ocrData['surat_permohonan_path'] ?? '') }}">
+                                <input type="hidden" name="ocr_extracted_text" value="{{ old('ocr_extracted_text', $ocrData['extracted_text'] ?? '') }}">
                             </div>
 
                             <!-- Upload Surat Laporan -->
@@ -257,13 +258,8 @@
                         </div>
 
                         <div id="membersList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Old Input or Saved Data Persistence -->
-                            @php 
-                                $membersToRender = old('members') ?? ($ocrData['members'] ?? []); 
-                            @endphp
-
-                            @if(!empty($membersToRender))
-                                @foreach($membersToRender as $idx => $m)
+                            @if(!empty(old('members')))
+                                @foreach(old('members') as $idx => $m)
                                     <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 relative group">
                                         <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                                             <span class="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Anggota {{ $idx + 1 }}</span>
@@ -281,39 +277,35 @@
                                     </div>
                                 @endforeach
                             
-                            <!-- OCR Results Persistence -->
                             @elseif(!empty($ocrData['members']))
                                 @foreach($ocrData['members'] as $idx => $m)
-                                    @if($idx > 0) <!-- Skip leader -->
-                                        @php $memberIdx = $idx - 1; @endphp
-                                        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 relative group hover:border-blue-200 transition-colors">
-                                            <div class="flex justify-between items-center pb-2 border-b border-gray-50">
-                                                <span class="text-[10px] font-black text-blue-200 uppercase tracking-[0.2em]">Anggota {{ $memberIdx + 1 }} (OCR)</span>
-                                                <button type="button" class="text-gray-300 hover:text-red-500 transition removeMemberBtn">
-                                                    <i data-lucide="x-circle" class="w-5 h-5"></i>
-                                                </button>
+                                    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 relative group hover:border-blue-200 transition-colors">
+                                        <div class="flex justify-between items-center pb-2 border-b border-gray-50">
+                                            <span class="text-[10px] font-black text-blue-200 uppercase tracking-[0.2em]">Anggota {{ $idx + 1 }} (OCR)</span>
+                                            <button type="button" class="text-gray-300 hover:text-red-500 transition removeMemberBtn">
+                                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                                            </button>
+                                        </div>
+                                        <div class="space-y-3">
+                                            <div class="relative">
+                                                <input type="text" name="members[{{ $idx }}][name]" value="{{ $m['name'] ?? '' }}" placeholder="Nama Lengkap" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                                <i data-lucide="user" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
                                             </div>
-                                            <div class="space-y-3">
-                                                <div class="relative">
-                                                    <input type="text" name="members[{{ $memberIdx }}][name]" value="{{ $m['Nama'] ?? '' }}" placeholder="Nama Lengkap" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                                    <i data-lucide="user" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                                                </div>
-                                                <div class="relative">
-                                                    <input type="text" name="members[{{ $memberIdx }}][nim]" value="{{ $m['NIM'] ?? '' }}" placeholder="NIM" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                                    <i data-lucide="hash" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                                                </div>
-                                                <input type="hidden" name="members[{{ $memberIdx }}][program_studi]" value="{{ $m['Prodi'] ?? '' }}">
-                                                <div class="relative">
-                                                    <input type="email" name="members[{{ $memberIdx }}][email]" placeholder="Alamat Email" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                                    <i data-lucide="mail" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                                                </div>
-                                                <div class="relative">
-                                                    <input type="text" name="members[{{ $memberIdx }}][phone]" placeholder="No. WhatsApp" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                                    <i data-lucide="phone" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                                                </div>
+                                            <div class="relative">
+                                                <input type="text" name="members[{{ $idx }}][nim]" value="{{ $m['nim'] ?? '' }}" placeholder="NIM" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                                <i data-lucide="hash" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
+                                            </div>
+                                            <input type="hidden" name="members[{{ $idx }}][program_studi]" value="{{ $m['program_studi'] ?? '' }}">
+                                            <div class="relative">
+                                                <input type="email" name="members[{{ $idx }}][email]" value="{{ $m['email'] ?? '' }}" placeholder="Alamat Email" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                                <i data-lucide="mail" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
+                                            </div>
+                                            <div class="relative">
+                                                <input type="text" name="members[{{ $idx }}][phone]" value="{{ $m['phone'] ?? '' }}" placeholder="No. WhatsApp" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                                <i data-lucide="phone" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
                                             </div>
                                         </div>
-                                    @endif
+                                    </div>
                                 @endforeach
                             @endif
                         </div>

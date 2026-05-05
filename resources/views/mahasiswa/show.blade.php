@@ -116,8 +116,7 @@
                                 <thead class="bg-gray-50 border-y border-gray-100">
                                     <tr>
                                         <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Identitas</th>
-                                        <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Program Studi</th>
-                                        <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                        <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
@@ -129,11 +128,7 @@
                                                 <p class="text-xs text-gray-500 font-mono mt-0.5">{{ $member->nim ?? 'NIM —' }}</p>
                                                 <p class="text-xs text-blue-500 mt-1">{{ $member->email }}</p>
                                             </td>
-                                            <td class="px-8 py-5">
-                                                <p class="text-sm text-gray-600">{{ $member->major }}</p>
-                                                <p class="text-[11px] text-gray-400 italic">{{ $member->program_studi ?? '' }}</p>
-                                            </td>
-                                            <td class="px-8 py-5">
+                                            <td class="px-8 py-5 text-right">
                                                 <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
                                                     @if($member->status === 'menunggu') bg-yellow-100 text-yellow-700
                                                     @elseif($member->status === 'diterima') bg-green-100 text-green-700

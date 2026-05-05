@@ -13,6 +13,27 @@ use Illuminate\Support\Facades\Log;
 
 class ApplicationController extends Controller
 {
+    private function parseOcrDate($dateStr)
+    {
+        if (!$dateStr || $dateStr === 'Tidak ditemukan') return null;
+        $months = [
+            'Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04',
+            'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08',
+            'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'
+        ];
+        foreach ($months as $name => $num) {
+            if (stripos($dateStr, $name) !== false) {
+                $parts = explode(' ', trim($dateStr));
+                if (count($parts) >= 3) {
+                    $day = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+                    $year = $parts[2];
+                    return "$year-$num-$day";
+                }
+            }
+        }
+        return null;
+    }
+
     public function index()
     {
         return view('welcome');
@@ -64,38 +85,50 @@ class ApplicationController extends Controller
                     'surat_permohonan_path' => $existingApp->surat_permohonan_path,
                     'members'        => $existingApp->members->map(function($m) {
                         return [
-                            'name'  => $m->name,
-                            'nim'   => $m->nim,
-                            'email' => $m->email,
-                            'phone' => $m->phone,
-                            'major' => $m->major
+                            'name'          => $m->name,
+                            'nim'           => $m->nim,
+                            'email'         => $m->email,
+                            'phone'         => $m->phone,
+                            'program_studi' => $m->major
                         ];
                     })->toArray(),
                 ];
             }
         }
 
-        if (empty($ocrData)) {
-            $parseOcrDate = function($dateStr) {
-                if (!$dateStr || $dateStr === 'Tidak ditemukan') return null;
-                $months = [
-                    'Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04',
-                    'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08',
-                    'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'
+        if (empty($ocrData) && session()->has('ocr_data')) {
+            $sessionData = session('ocr_data');
+            $members = $sessionData['ocr_members'] ?? [];
+            $normalizedMembers = [];
+            
+            foreach (array_slice($members, 1) as $m) {
+                $normalizedMembers[] = [
+                    'name'          => $m['Nama'] ?? '',
+                    'nim'           => $m['NIM'] ?? '',
+                    'program_studi' => $m['Prodi'] ?? '',
+                    'email'         => '',
+                    'phone'         => ''
                 ];
-                foreach ($months as $name => $num) {
-                    if (stripos($dateStr, $name) !== false) {
-                        $parts = explode(' ', trim($dateStr));
-                        if (count($parts) >= 3) {
-                            $day = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
-                            $year = $parts[2];
-                            return "$year-$num-$day";
-                        }
-                    }
-                }
-                return null;
-            };
+            }
 
+            $ocrData = [
+                'nama'           => $sessionData['ocr_nama'] ?? '',
+                'university'     => $sessionData['ocr_university'] ?? '',
+                'jurusan'        => $sessionData['ocr_jurusan'] ?? '',
+                'program_studi'  => $sessionData['ocr_program_studi'] ?? '',
+                'major'          => $sessionData['ocr_major'] ?? '',
+                'keahlian'       => $sessionData['ocr_keahlian'] ?? '',
+                'tanggal_masuk'  => $this->parseOcrDate($sessionData['ocr_tanggal_masuk'] ?? ''),
+                'tanggal_keluar' => $this->parseOcrDate($sessionData['ocr_tanggal_keluar'] ?? ''),
+                'type'           => $sessionData['type'] ?? $type,
+                'surat_permohonan_path' => $sessionData['surat_permohonan_path'] ?? '',
+                'extracted_text' => $sessionData['ocr_extracted_text'] ?? '',
+                'members'        => $normalizedMembers,
+                'leader_nim'     => $members[0]['NIM'] ?? '',
+            ];
+        }
+
+        if (empty($ocrData)) {
             $ocrData = [
                 'nama'           => $request->query('ocr_nama'),
                 'university'     => $request->query('ocr_university'),
@@ -103,11 +136,11 @@ class ApplicationController extends Controller
                 'program_studi'  => $request->query('ocr_program_studi'),
                 'major'          => $request->query('ocr_major'),
                 'keahlian'       => $request->query('ocr_keahlian'),
-                'tanggal_masuk'  => $parseOcrDate($request->query('ocr_tanggal_masuk')),
-                'tanggal_keluar' => $parseOcrDate($request->query('ocr_tanggal_keluar')),
+                'tanggal_masuk'  => $this->parseOcrDate($request->query('ocr_tanggal_masuk')),
+                'tanggal_keluar' => $this->parseOcrDate($request->query('ocr_tanggal_keluar')),
                 'type'           => $request->query('ocr_type'),
                 'surat_permohonan_path' => $request->query('surat_permohonan_path'),
-                'members'        => $request->query('ocr_members', []),
+                'members'        => [], // Already handled or empty
             ];
         }
 
@@ -118,67 +151,8 @@ class ApplicationController extends Controller
     public function prefill(Request $request)
     {
         $type = $request->input('type', 'individual');
-        $parseOcrDate = function($dateStr) {
-            if (!$dateStr || $dateStr === 'Tidak ditemukan') return null;
-            $months = [
-                'Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04',
-                'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08',
-                'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'
-            ];
-            foreach ($months as $name => $num) {
-                if (stripos($dateStr, $name) !== false) {
-                    $parts = explode(' ', trim($dateStr));
-                    if (count($parts) >= 3) {
-                        $day = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
-                        $year = $parts[2];
-                        return "$year-$num-$day";
-                    }
-                }
-            }
-            return null;
-        };
-
-        do {
-            $code = 'PAG-' . date('Y') . '-TEMP-' . strtoupper(Str::random(4));
-        } while (Application::where('registration_code', $code)->exists());
-
-        DB::beginTransaction();
-        try {
-            $app = new Application();
-            $app->user_id = auth()->id();
-            $app->registration_code = $code;
-            $app->type = $type;
-            $app->status = 'pending';
-            $app->leader_name = $request->input('ocr_nama');
-            $app->university = $request->input('ocr_university');
-            $app->major = $request->input('ocr_jurusan');
-            $app->program_studi = $request->input('ocr_program_studi');
-            $app->keahlian = $request->input('ocr_keahlian');
-            $app->period_start = $parseOcrDate($request->input('ocr_tanggal_masuk'));
-            $app->period_end = $parseOcrDate($request->input('ocr_tanggal_keluar'));
-            $app->surat_permohonan_path = $request->input('surat_permohonan_path');
-            $app->surat_permohonan_extracted_text = $request->input('ocr_extracted_text');
-            $app->file_path = $request->input('surat_permohonan_path');
-            $app->save();
-
-            if ($type === 'group' && $request->has('ocr_members')) {
-                foreach ($request->input('ocr_members') as $m) {
-                    $member = new ApplicationMember();
-                    $member->application_id = $app->id;
-                    $member->name = $m['Nama'] ?? '-';
-                    $member->nim = $m['NIM'] ?? '-';
-                    $member->major = $m['Prodi'] ?? '-';
-                    $member->status = 'menunggu';
-                    $member->save();
-                }
-            }
-            DB::commit();
-            return redirect()->route('apply.form', ['type' => $type, 'id' => $app->id]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Prefill Error: " . $e->getMessage());
-            return back()->with('error', 'Gagal menyimpan draf pengajuan.');
-        }
+        session(['ocr_data' => $request->all()]);
+        return redirect()->route('apply.form', ['type' => $type]);
     }
 
     public function store(Request $r)
@@ -265,7 +239,11 @@ class ApplicationController extends Controller
             $app->status = 'menunggu';
             $app->leader_status = 'menunggu';
 
-            // Save OCR Raw Data from Report
+            // Save OCR Data from Previous Step (Surat Permohonan)
+            if ($r->surat_permohonan_path) $app->surat_permohonan_path = $r->surat_permohonan_path;
+            if ($r->ocr_extracted_text) $app->surat_permohonan_extracted_text = $r->ocr_extracted_text;
+
+            // Save OCR Raw Data from Report (Step in this form)
             if ($r->surat_laporan_path) $app->surat_laporan_path = $r->surat_laporan_path;
             if ($r->surat_laporan_raw_text) $app->surat_laporan_raw_text = $r->surat_laporan_raw_text;
             if ($r->surat_laporan_extracted_text) $app->surat_laporan_extracted_text = $r->surat_laporan_extracted_text;
@@ -293,6 +271,7 @@ class ApplicationController extends Controller
                 }
             }
             $isEdit = $r->filled('application_id');
+            session()->forget('ocr_data');
             DB::commit();
             
             $msg = $isEdit ? 'Pengajuan berhasil diperbarui!' : 'Pengajuan berhasil dikirim!';
