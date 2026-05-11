@@ -12,8 +12,6 @@ class CreateDepartmentsTable extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->integer('quota')->default(0);
-            $table->date('period_start')->nullable();
-            $table->date('period_end')->nullable();
             $table->timestamps();
         });
     }

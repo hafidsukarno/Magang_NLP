@@ -2,11 +2,14 @@
 @if ($errors->any())
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const msg = `{!! addslashes($errors->first()) !!}`;
+            const isMajorError = msg.toLowerCase().includes('tidak sesuai') || msg.toLowerCase().includes('jurusan');
             Swal.fire({
-                icon: 'error',
-                title: 'Gagal',
-                html: `{!! addslashes($errors->first()) !!}`,
-                confirmButtonColor: '#ef4444'
+                icon: isMajorError ? 'warning' : 'error',
+                title: isMajorError ? 'Jurusan Tidak Sesuai' : 'Gagal',
+                html: msg,
+                confirmButtonColor: isMajorError ? '#f59e0b' : '#ef4444',
+                confirmButtonText: 'Mengerti'
             });
         });
     </script>
@@ -177,10 +180,8 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endif
-
-                                @if($app->file_path)
-                                    <a href="{{ route('hrd.application.viewFile', ['id' => $app->id, 'type' => 'main']) }}" target="_blank" 
+                                @endif                                 @if($app->surat_laporan_path)
+                                    <a href="{{ route('hrd.application.viewFile', ['id' => $app->id, 'type' => 'laporan']) }}" target="_blank" 
                                         class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-blue-400 transition-all hover:shadow-md hover:-translate-y-0.5 group">
                                         <div class="flex items-center gap-3">
                                             <div class="p-2.5 bg-blue-50 rounded-xl group-hover:bg-blue-500 transition-colors">
@@ -415,18 +416,29 @@
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-xl font-semibold">Member(s)</h2>
                     
-                    @if($app->type === 'group' && $app->status === 'menunggu')
-                        <div class="flex gap-2">
-                            <button type="button" onclick="bulkApproveGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
-                                <i data-lucide="check-check" class="w-4 h-4"></i>
-                                Terima Seluruh Kelompok
-                            </button>
-                            <button type="button" onclick="bulkRejectGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
-                                <i data-lucide="users-2" class="w-4 h-4"></i>
-                                Tolak Seluruh Kelompok
-                            </button>
-                        </div>
-                    @endif
+                    <div class="flex gap-2">
+                        @if($app->status === 'menunggu')
+                            @if($app->type === 'group')
+                                <button type="button" onclick="bulkApproveGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
+                                    <i data-lucide="check-check" class="w-4 h-4"></i>
+                                    Terima Seluruh Kelompok
+                                </button>
+                                <button type="button" onclick="bulkRejectGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
+                                    <i data-lucide="users-2" class="w-4 h-4"></i>
+                                    Tolak Seluruh Kelompok
+                                </button>
+                            @else
+                                <button type="button" onclick="openActionModal('diterima')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
+                                    <i data-lucide="check" class="w-4 h-4"></i>
+                                    Terima Pengajuan
+                                </button>
+                                <button type="button" onclick="openActionModal('ditolak')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                    Tolak Pengajuan
+                                </button>
+                            @endif
+                        @endif
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -460,8 +472,8 @@
                                                     <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
-                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
+                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
                                                 </span>
                                             @endif
                                         @else
@@ -495,8 +507,8 @@
                                                         <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
                                                     </span>
                                                 @endif
                                             @else
@@ -510,7 +522,7 @@
                                         </td>
                                     </tr>
                                 @endif
- 
+
                                 @foreach ($app->members as $member)
                                     @if($member->name != $app->leader_name)
                                     <tr class="hover:bg-gray-50 transition">
@@ -532,8 +544,8 @@
                                                         <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-orange-100 text-orange-700 border border-orange-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Dipertimbangkan
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
+                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
                                                     </span>
                                                 @endif
                                             @else
@@ -552,8 +564,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-
         </div>
 
 
@@ -692,9 +702,16 @@
             const iconEl = document.getElementById('modalIcon');
             const confirmBtn = document.getElementById('modalConfirmBtn');
             const noteEl = document.getElementById('modal_hrd_note');
+            const deptContainer = document.getElementById('deptSelectContainer');
 
             statusInput.value = status;
             modal.classList.remove('hidden');
+
+            if (status === 'ditolak') {
+                deptContainer.classList.add('hidden');
+            } else {
+                deptContainer.classList.remove('hidden');
+            }
 
             if (status === 'diterima') {
                 titleEl.innerText = 'Terima Pengajuan Magang';

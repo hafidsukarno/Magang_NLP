@@ -32,7 +32,7 @@ class SuratPermohonanController extends Controller {
             // 3. OCR Call
             try {
                 $ocrUrl = config("services.ocr.endpoint", "http://127.0.0.1:5000/extract");
-                $response = Http::timeout(60)->attach("file", fopen($fullPath, 'r'), basename($fullPath))->post($ocrUrl);
+                $response = Http::timeout(300)->attach("file", fopen($fullPath, 'r'), basename($fullPath))->post($ocrUrl);
 
                 if ($response->successful()) {
                     $ocrResult = $response->json();
@@ -86,6 +86,7 @@ class SuratPermohonanController extends Controller {
         }
     }
     public function uploadLaporan(Request $request) {
+        set_time_limit(0); // Nonaktifkan batas waktu eksekusi PHP
         // Validate with proper error handling
         try {
             $validated = $request->validate([
@@ -115,7 +116,7 @@ class SuratPermohonanController extends Controller {
             $rawText = "-";
             try {
                 $ocrUrl = "http://127.0.0.1:5000/extract";
-                $ocrResponse = Http::timeout(60)
+                $ocrResponse = Http::timeout(300)
                     ->attach("file", fopen($fullPath, 'r'), basename($fullPath))
                     ->post($ocrUrl);
 
@@ -133,7 +134,7 @@ class SuratPermohonanController extends Controller {
             $keahlianRawText = "-";
             try {
                 $skillUrl = "http://127.0.0.1:5005/extract-skills/";
-                $skillResponse = Http::timeout(60)
+                $skillResponse = Http::timeout(300)
                     ->attach("file", fopen($fullPath, 'r'), basename($fullPath))
                     ->post($skillUrl);
 

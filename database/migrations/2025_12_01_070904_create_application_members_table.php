@@ -12,10 +12,11 @@ class CreateApplicationMembersTable extends Migration
             $table->id();
             $table->foreignId('application_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('university')->nullable();
-            $table->string('major')->nullable();
+            $table->string('nim')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
+            $table->enum('status', ['menunggu', 'diterima', 'ditolak'])->default('menunggu');
+            $table->text('hrd_note')->nullable();
             $table->timestamps();
         });
     }

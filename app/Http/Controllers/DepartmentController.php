@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
-use App\Models\DepartmentQuota;
 use App\Models\DepartmentSkill;
 use App\Models\DepartmentMajor;
 use Illuminate\Http\Request;
@@ -14,8 +13,8 @@ class DepartmentController extends Controller
 {
     public function index(Request $request)
     {
-        // eager load quotas so blade bisa akses ->quotas etc
-        $query = Department::with('quotas', 'skills', 'majors');
+        // eager load skills dan majors
+        $query = Department::with('skills', 'majors');
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -162,7 +161,6 @@ class DepartmentController extends Controller
             // Delete related data
             $department->majors()->delete();
             $department->skills()->delete();
-            $department->quotas()->delete();
 
             // Delete department
             $department->delete();

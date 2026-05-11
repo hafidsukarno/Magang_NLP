@@ -137,38 +137,24 @@
                     <tbody class="text-gray-700 text-center">
                         @if ($firstDepartment)
                             @php
-                                // Ambil activeQuota untuk periode aktif
-                                $activeQuota = $firstDepartment->quotas()
-                                    ->where('period_start', '<=', $today)
-                                    ->where('period_end', '>=', $today)
-                                    ->orderBy('period_start', 'desc')
-                                    ->first();
-
                                 // Kuota numerik diambil langsung dari kolom departments
                                 $quotaValue = (int) ($firstDepartment->quota ?? 0);
 
-                                // Hitung accepted people berdasarkan leader_status dan application_members.status
-                                if ($activeQuota) {
-                                    $appsInPeriod = \App\Models\Application::where('department_id', $firstDepartment->id)
-                                        ->where(function($q) use ($activeQuota) {
-                                            $q->where('period_start', '<=', $activeQuota->period_end)
-                                              ->where('period_end', '>=', $activeQuota->period_start);
-                                        })->get();
-                                } else {
-                                    $appsInPeriod = $firstDepartment->applications()->get();
-                                }
+                                // Hitung accepted people yang sedang aktif (overlap hari ini)
+                                $appsInPeriod = \App\Models\Application::where('department_id', $firstDepartment->id)
+                                    ->where('period_start', '<=', $today)
+                                    ->where('period_end', '>=', $today)
+                                    ->get();
 
                                 $acceptedPeople = 0;
                                 foreach ($appsInPeriod as $a) {
                                     if ($a->type === 'individual') {
-                                        // Individual: hitung jika leader diterima
                                         if ($a->leader_status == 'diterima') {
                                             $acceptedPeople++;
                                         }
                                     } else {
-                                        // Group: hitung ketua (jika diterima) + members yang diterima
                                         if ($a->leader_status == 'diterima') {
-                                            $acceptedPeople++; // ketua
+                                            $acceptedPeople++;
                                         }
                                         $acceptedPeople += $a->members->where('status', 'diterima')->count();
                                     }
@@ -202,37 +188,23 @@
                         <table class="w-full text-xs md:text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed">
                             <tbody class="text-gray-700 text-center">
                                 @foreach ($otherDepartments as $d)
-                                    @php
-                                        $activeQuota = $d->quotas()
-                                            ->where('period_start','<=',$today)
-                                            ->where('period_end','>=',$today)
-                                            ->orderBy('period_start','desc')
-                                            ->first();
-
                                         // tetap ambil kuota dari departments
                                         $quotaValue = (int) ($d->quota ?? 0);
 
-                                        if ($activeQuota) {
-                                            $appsInPeriod = \App\Models\Application::where('department_id', $d->id)
-                                                ->where(function($q) use ($activeQuota) {
-                                                    $q->where('period_start', '<=', $activeQuota->period_end)
-                                                      ->where('period_end', '>=', $activeQuota->period_start);
-                                                })->get();
-                                        } else {
-                                            $appsInPeriod = $d->applications()->get();
-                                        }
+                                        $appsInPeriod = \App\Models\Application::where('department_id', $d->id)
+                                            ->where('period_start', '<=', $today)
+                                            ->where('period_end', '>=', $today)
+                                            ->get();
 
                                         $acceptedPeople = 0;
                                         foreach ($appsInPeriod as $a) {
                                             if ($a->type === 'individual') {
-                                                // Individual: hitung jika leader diterima
                                                 if ($a->leader_status == 'diterima') {
                                                     $acceptedPeople++;
                                                 }
                                             } else {
-                                                // Group: hitung ketua (jika diterima) + members yang diterima
                                                 if ($a->leader_status == 'diterima') {
-                                                    $acceptedPeople++; // ketua
+                                                    $acceptedPeople++;
                                                 }
                                                 $acceptedPeople += $a->members->where('status', 'diterima')->count();
                                             }

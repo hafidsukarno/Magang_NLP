@@ -40,6 +40,27 @@
                     <input type="hidden" name="keahlian" value="{{ old('keahlian', $ocrData['keahlian'] ?? '') }}">
                     <input type="hidden" name="application_id" value="{{ $applicationId }}">
 
+                    <!-- General Error Alert -->
+                    @if($errors->any())
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl mb-6">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i data-lucide="alert-circle" class="h-5 w-5 text-red-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider">Terjadi Kesalahan</h3>
+                                    <div class="mt-1 text-sm text-red-700">
+                                        <ul class="list-disc pl-5 space-y-1">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- SECTION 1: INFORMASI UMUM -->
                     <section>
                         <div class="flex items-center gap-2 mb-6 border-b border-gray-100 pb-2">
@@ -174,6 +195,7 @@
                                         class="w-full bg-white border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 transition-all outline-none">
                                     <i data-lucide="calendar-days" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none"></i>
                                 </div>
+                                @error('period_start') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                             </div>
 
                             <!-- Tgl Selesai -->
@@ -184,6 +206,7 @@
                                         class="w-full bg-white border border-gray-200 rounded-xl p-3.5 pl-11 focus:ring-2 focus:ring-blue-500 transition-all outline-none">
                                     <i data-lucide="calendar-check" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none"></i>
                                 </div>
+                                @error('period_end') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                             </div>
 
                             <!-- Info Box -->
@@ -270,7 +293,6 @@
                                         <div class="space-y-3">
                                             <input type="text" name="members[{{ $idx }}][name]" value="{{ $m['name'] ?? '' }}" placeholder="Nama Lengkap" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                             <input type="text" name="members[{{ $idx }}][nim]" value="{{ $m['nim'] ?? '' }}" placeholder="NIM" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <input type="hidden" name="members[{{ $idx }}][program_studi]" value="{{ $m['program_studi'] ?? '' }}">
                                             <input type="email" name="members[{{ $idx }}][email]" value="{{ $m['email'] ?? '' }}" placeholder="Email" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                             <input type="text" name="members[{{ $idx }}][phone]" value="{{ $m['phone'] ?? '' }}" placeholder="No. Telepon" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
@@ -295,7 +317,6 @@
                                                 <input type="text" name="members[{{ $idx }}][nim]" value="{{ $m['nim'] ?? '' }}" placeholder="NIM" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                                 <i data-lucide="hash" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
                                             </div>
-                                            <input type="hidden" name="members[{{ $idx }}][program_studi]" value="{{ $m['program_studi'] ?? '' }}">
                                             <div class="relative">
                                                 <input type="email" name="members[{{ $idx }}][email]" value="{{ $m['email'] ?? '' }}" placeholder="Alamat Email" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                                 <i data-lucide="mail" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
@@ -457,9 +478,9 @@
                                 quotaInfo.classList.add('bg-green-100', 'text-green-700');
                                 quotaInfo.innerHTML = `<strong>✓ Kuota Tersedia:</strong> Sisa ${data.remaining} kursi.`;
                             } else {
-                                quotaInfo.classList.add('bg-red-100', 'text-red-700');
-                                quotaInfo.innerHTML = `<strong>❌ Kuota Penuh:</strong> ${data.message}`;
-                                submitBtn.disabled = true;
+                                quotaInfo.classList.add('bg-orange-100', 'text-orange-700');
+                                quotaInfo.innerHTML = `<strong>⚠️ Kuota Penuh:</strong> ${data.message} (Namun Anda tetap dapat mengirim pengajuan untuk diproses scoring oleh HRD)`;
+                                // submitBtn.disabled = true; // Non-blocking now
                             }
                         }
                     } catch (err) { console.error(err); }

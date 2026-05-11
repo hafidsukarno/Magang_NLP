@@ -18,11 +18,6 @@ class Department extends Model
     }
     
 
-    public function quotas()
-    {
-        return $this->hasMany(DepartmentQuota::class, 'department_id');
-    }
-
     // Relasi untuk keahlian
     public function skills()
     {

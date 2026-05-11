@@ -130,13 +130,8 @@ class RpaScoringService
             $quotaValid = false;
             $quotaLeft = 0;
         } else {
-            // 1. Get Quota Value (Period-based or Legacy)
-            $quotaRecord = \App\Models\DepartmentQuota::where('department_id', $targetDeptId)
-                ->where('period_start', '<=', $periodStart)
-                ->where('period_end', '>=', $periodEnd)
-                ->first();
-            
-            $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($app->department->quota ?? 0);
+            // Ambil kuota langsung dari departemen
+            $quotaValue = (int)($app->department->quota ?? 0);
 
             // 2. Count used slots (Accepted people overlapping the period)
             $acceptedApps = \App\Models\Application::where('department_id', $targetDeptId)
@@ -228,13 +223,8 @@ class RpaScoringService
             return $a->type === 'group' ? ($a->members->count() + 1) : 1;
         });
 
-        // Get Quota
-        $quotaRecord = \App\Models\DepartmentQuota::where('department_id', $targetDeptId)
-            ->where('period_start', '<=', $periodStart)
-            ->where('period_end', '>=', $periodEnd)
-            ->first();
-        
-        $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($app->department->quota ?? 0);
+        // Ambil kuota langsung dari departemen
+        $quotaValue = (int)($app->department->quota ?? 0);
 
         $quotaLeft = max(0, $quotaValue - $usedPeople);
 

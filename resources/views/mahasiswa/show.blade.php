@@ -207,21 +207,26 @@
                             <h3 class="font-bold text-gray-800 text-sm uppercase tracking-wider">Lampiran Dokumen</h3>
                         </div>
                         
-                        <div class="space-y-3">
-                            @if($app->file_path)
-                            <a href="{{ Storage::disk('public')->url($app->file_path) }}" target="_blank"
-                                class="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:border-blue-200 hover:bg-blue-50 transition-all group">
+                        <div class="space-y-4">
+                            @if($app->surat_laporan_path)
+                            <a href="{{ Storage::disk('public')->url($app->surat_laporan_path) }}" target="_blank"
+                                class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-blue-400 transition-all hover:shadow-md group">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center group-hover:bg-red-100 transition-colors">
-                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                    <div class="p-2.5 bg-blue-50 rounded-xl group-hover:bg-blue-600 transition-colors">
+                                        <i data-lucide="file-check" class="w-5 h-5 text-blue-600 group-hover:text-white transition-colors"></i>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-bold text-gray-700">Surat Laporan</p>
-                                        <p class="text-[10px] text-gray-400">PDF Document</p>
+                                        <p class="text-xs font-bold text-gray-800">Proposal / Laporan Magang</p>
+                                        <p class="text-[10px] text-gray-400 italic">Klik untuk melihat dokumen</p>
                                     </div>
                                 </div>
-                                <i data-lucide="external-link" class="w-4 h-4 text-gray-300 group-hover:text-blue-500"></i>
+                                <i data-lucide="external-link" class="w-4 h-4 text-gray-300 group-hover:text-blue-600 transition-colors"></i>
                             </a>
+                            @else
+                            <div class="flex items-center gap-3 p-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl opacity-60">
+                                <i data-lucide="file-x" class="w-5 h-5 text-gray-400"></i>
+                                <p class="text-xs font-medium text-gray-500">Proposal belum diunggah</p>
+                            </div>
                             @endif
 
                             @if($app->surat_permohonan_path)

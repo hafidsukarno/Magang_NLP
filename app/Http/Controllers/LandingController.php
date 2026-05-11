@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Department;
-use App\Models\DepartmentQuota;
 use App\Models\Application;
 use Carbon\Carbon;
 
@@ -30,13 +29,8 @@ class LandingController extends Controller
 
         $dept = Department::find($departmentId);
 
-        // 1. Get Quota Value (Period-based or Legacy)
-        $quotaRecord = DepartmentQuota::where('department_id', $departmentId)
-            ->where('period_start', '<=', $startDate)
-            ->where('period_end', '>=', $endDate)
-            ->first();
-        
-        $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($dept->quota ?? 0);
+        // Ambil kuota langsung dari departemen
+        $quotaValue = (int)($dept->quota ?? 0);
 
         // 2. Count used slots (Accepted people overlapping the period)
         $acceptedApps = Application::where('department_id', $departmentId)

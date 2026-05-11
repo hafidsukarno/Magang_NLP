@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Application;
 use App\Models\ApplicationMember;
 use App\Models\Department;
-use App\Models\DepartmentQuota;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,7 +88,6 @@ class ApplicationController extends Controller
                             'nim'           => $m->nim,
                             'email'         => $m->email,
                             'phone'         => $m->phone,
-                            'program_studi' => $m->major
                         ];
                     })->toArray(),
                 ];
@@ -105,7 +103,6 @@ class ApplicationController extends Controller
                 $normalizedMembers[] = [
                     'name'          => $m['Nama'] ?? '',
                     'nim'           => $m['NIM'] ?? '',
-                    'program_studi' => $m['Prodi'] ?? '',
                     'email'         => '',
                     'phone'         => ''
                 ];
@@ -184,14 +181,12 @@ class ApplicationController extends Controller
             $neededPeople = 1 + count($r->members);
         }
 
+        /* 
         if ($departmentId) {
-            $quotaRecord = DepartmentQuota::where('department_id', $departmentId)
-                ->where('period_start', '<=', $periodStart)
-                ->where('period_end', '>=', $periodEnd)
-                ->first();
-            $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (Department::find($departmentId)->quota ?? null);
+            $dept = Department::find($departmentId);
+            $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
 
-            if ($quotaValue !== null) {
+            if ($quotaValue > 0) {
                 $acceptedPeople = Application::where('department_id', $departmentId)
                     ->where('status', 'diterima')
                     ->where(function ($q) use ($periodStart, $periodEnd) {
@@ -204,6 +199,7 @@ class ApplicationController extends Controller
                 }
             }
         }
+        */
 
         DB::beginTransaction();
         try {
@@ -249,9 +245,7 @@ class ApplicationController extends Controller
             if ($r->surat_laporan_extracted_text) $app->surat_laporan_extracted_text = $r->surat_laporan_extracted_text;
             if ($r->keahlian_raw_text) $app->keahlian_raw_text = $r->keahlian_raw_text;
 
-            if ($r->hasFile('file')) {
-                $app->file_path = $r->file('file')->store('magang_uploads', 'public');
-            }
+
 
             $app->save();
 
@@ -265,7 +259,6 @@ class ApplicationController extends Controller
                     $member->nim = $m['nim'] ?? '-';
                     $member->email = $m['email'] ?? '-';
                     $member->phone = $m['phone'] ?? '-';
-                    $member->major = $m['major'] ?? '-';
                     $member->status = 'menunggu';
                     $member->save();
                 }

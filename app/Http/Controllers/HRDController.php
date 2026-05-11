@@ -4,17 +4,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\Department;
-use App\Models\DepartmentQuota;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class HRDController extends Controller {
 
     public function index() {
-        // load departments with quotas and accepted_count
-        $departments = Department::with(['quotas' => function($q){
-            $q->orderBy('period_start', 'desc');
-        }])->withCount(['applications as accepted_count' => function($q){
+        // load departments with accepted_count (kuota diambil langsung dari kolom dept->quota)
+        $departments = Department::withCount(['applications as accepted_count' => function($q){
             $q->where('status','diterima');
         }])->get();
 
@@ -183,13 +180,8 @@ class HRDController extends Controller {
         $periodEnd = $app->period_end;
         $appPeopleCount = $app->type === 'group' ? ($app->members->count() + 1) : 1;
 
-        // 1. Get Quota Value (Period-based or Legacy)
-        $quotaRecord = DepartmentQuota::where('department_id', $dept->id)
-            ->where('period_start', '<=', $periodStart)
-            ->where('period_end', '>=', $periodEnd)
-            ->first();
-        
-        $quotaValue = $quotaRecord ? (int)$quotaRecord->quota : (int)($dept->quota ?? 0);
+        // Ambil kuota langsung dari departemen
+        $quotaValue = (int)($dept->quota ?? 0);
 
         // 2. Count used slots (Accepted people overlapping the period)
         $acceptedApps = Application::where('department_id', $dept->id)
@@ -214,6 +206,32 @@ class HRDController extends Controller {
             'available' => $availableSlots,
             'can_fit' => $availableSlots >= $appPeopleCount
         ];
+    }
+
+    /**
+     * Cek apakah jurusan mahasiswa cocok dengan persyaratan departemen.
+     * Mengembalikan true jika cocok ATAU jika departemen tidak punya persyaratan jurusan (umum).
+     */
+    private function isMajorMatch($app, $dept): bool {
+        if (!$dept) return false;
+
+        // Jika departemen tidak punya persyaratan jurusan, dianggap cocok (umum)
+        if ($dept->majors->count() === 0) return true;
+
+        $studentMajor = strtolower($app->major ?? '');
+        $studentProdi = strtolower($app->program_studi ?? '');
+
+        foreach ($dept->majors as $m) {
+            $reqMajor = strtolower($m->name);
+            if (
+                ($studentMajor && (stripos($studentMajor, $reqMajor) !== false || stripos($reqMajor, $studentMajor) !== false)) ||
+                ($studentProdi && (stripos($studentProdi, $reqMajor) !== false || stripos($reqMajor, $studentProdi) !== false))
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function applications()
@@ -294,23 +312,21 @@ class HRDController extends Controller {
                     return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
                 }
 
-                // prefer period-based quota that covers the app period and lock it
-                $quotaRecord = DepartmentQuota::where('department_id', $targetDeptId)
-                    ->where('period_start', '<=', $app->period_start)
-                    ->where('period_end', '>=', $app->period_end)
-                    ->lockForUpdate()
-                    ->first();
-
-                $quotaValue = null;
-                if ($quotaRecord) {
-                    $quotaValue = (int) $quotaRecord->quota;
-                } else {
-                    // fallback to legacy department quota (no lock possible on single value)
-                    $dept = Department::find($targetDeptId);
-                    $quotaValue = $dept ? (int)($dept->quota ?? 0) : null;
+                // Validasi kesesuaian jurusan
+                $targetDept = Department::with('majors')->find($targetDeptId);
+                if ($targetDept && !$this->isMajorMatch($app, $targetDept)) {
+                    DB::rollBack();
+                    $syarat = $targetDept->majors->pluck('name')->join(', ');
+                    return back()->withErrors([
+                        'quota' => "Jurusan mahasiswa ({$app->major}) tidak sesuai dengan syarat departemen {$targetDept->name}. Syarat jurusan: {$syarat}."
+                    ])->withInput();
                 }
 
-                if ($quotaValue !== null) {
+                // Ambil kuota langsung dari departemen
+                $dept = Department::find($targetDeptId);
+                $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
+
+                if ($quotaValue > 0) {
                     // count already accepted PEOPLE (status == 'diterima') overlapping the period, exclude current application
                     $acceptedApps = Application::where('department_id', $targetDeptId)
                         ->where('status', 'diterima')
@@ -394,10 +410,10 @@ class HRDController extends Controller {
         $path = '';
         if ($type === 'permohonan') {
             $path = $app->surat_permohonan_path;
-        } elseif ($type === 'laporan') {
+        } elseif ($type === 'laporan' || $type === 'main') {
             $path = $app->surat_laporan_path;
         } else {
-            $path = $app->file_path;
+            $path = $app->surat_laporan_path;
         }
 
         if (!$path) {
@@ -448,22 +464,21 @@ class HRDController extends Controller {
                     return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
                 }
 
-                // Check quota - count already accepted people including this new one
-                $quotaRecord = DepartmentQuota::where('department_id', $targetDeptId)
-                    ->where('period_start', '<=', $app->period_start)
-                    ->where('period_end', '>=', $app->period_end)
-                    ->lockForUpdate()
-                    ->first();
-
-                $quotaValue = null;
-                if ($quotaRecord) {
-                    $quotaValue = (int) $quotaRecord->quota;
-                } else {
-                    $dept = Department::find($targetDeptId);
-                    $quotaValue = $dept ? (int)($dept->quota ?? 0) : null;
+                // Validasi kesesuaian jurusan
+                $targetDept = Department::with('majors')->find($targetDeptId);
+                if ($targetDept && !$this->isMajorMatch($app, $targetDept)) {
+                    DB::rollBack();
+                    $syarat = $targetDept->majors->pluck('name')->join(', ');
+                    return back()->withErrors([
+                        'quota' => "Jurusan mahasiswa ({$app->major}) tidak sesuai dengan syarat departemen {$targetDept->name}. Syarat jurusan: {$syarat}."
+                    ])->withInput();
                 }
 
-                if ($quotaValue !== null) {
+                // Ambil kuota langsung dari departemen
+                $dept = Department::find($targetDeptId);
+                $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
+
+                if ($quotaValue > 0) {
                     // Tentukan berapa quota yang dibutuhkan
                     // - Individual: leader = 1 orang
                     // - Group: leader (ketua) = 1 orang + members
@@ -551,22 +566,21 @@ class HRDController extends Controller {
                     return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
                 }
 
-                // Check quota - count already accepted people including this leader
-                $quotaRecord = DepartmentQuota::where('department_id', $targetDeptId)
-                    ->where('period_start', '<=', $app->period_start)
-                    ->where('period_end', '>=', $app->period_end)
-                    ->lockForUpdate()
-                    ->first();
-
-                $quotaValue = null;
-                if ($quotaRecord) {
-                    $quotaValue = (int) $quotaRecord->quota;
-                } else {
-                    $dept = Department::find($targetDeptId);
-                    $quotaValue = $dept ? (int)($dept->quota ?? 0) : null;
+                // Validasi kesesuaian jurusan
+                $targetDept = Department::with('majors')->find($targetDeptId);
+                if ($targetDept && !$this->isMajorMatch($app, $targetDept)) {
+                    DB::rollBack();
+                    $syarat = $targetDept->majors->pluck('name')->join(', ');
+                    return back()->withErrors([
+                        'quota' => "Jurusan mahasiswa ({$app->major}) tidak sesuai dengan syarat departemen {$targetDept->name}. Syarat jurusan: {$syarat}."
+                    ])->withInput();
                 }
 
-                if ($quotaValue !== null) {
+                // Ambil kuota langsung dari departemen
+                $dept = Department::find($targetDeptId);
+                $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
+
+                if ($quotaValue > 0) {
                     // Tentukan berapa quota yang dibutuhkan
                     // - Individual: leader = 1 orang
                     // - Group: leader (ketua) = 1 orang
