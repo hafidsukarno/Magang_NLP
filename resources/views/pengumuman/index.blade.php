@@ -11,7 +11,7 @@
                     <i data-lucide="megaphone" class="w-8 h-8 text-gray-600 hidden md:inline-block"></i>
                     Pengumuman Penerimaan Magang
                 </h2>
-                <p class="text-gray-500 mt-2">Masukkan kode pendaftaran Anda untuk melihat hasil seleksi.</p>
+                <p class="text-gray-500 mt-2">Masukkan NIM Anda untuk melihat hasil seleksi.</p>
             </div>
 
             <!-- Cari dengan kode -->
@@ -19,8 +19,8 @@
                 <div
                     class="bg-gray-100 border border-gray-300 shadow-sm flex items-center gap-3 px-4 py-3 rounded-xl shadow-inner">
                     <i data-lucide="search" class="text-gray-500 w-6 h-6"></i>
-                    <input type="text" name="code" value="{{ request('code') }}"
-                        placeholder="Masukkan kode pendaftaran"
+                    <input type="text" name="nim" value="{{ request('nim') }}"
+                        placeholder="Masukkan NIM Anda"
                         class="w-full bg-transparent focus:outline-none text-gray-700">
                 </div>
                 <button class="w-full mt-3 bg-blue-600 text-white py-3 rounded-xl shadow hover:bg-blue-700">
@@ -29,10 +29,10 @@
             </form>
 
             <!-- Hasil -->
-            @if (request('code') && !$data)
+            @if (request('nim') && !$data)
                 <div class="p-6 bg-yellow-50 border border-yellow-300 rounded-lg text-center">
                     <p class="text-lg font-semibold text-yellow-700">
-                        Kode "<span class="font-bold">{{ request('code') }}</span>" tidak ditemukan.
+                        NIM "<span class="font-bold">{{ request('nim') }}</span>" tidak ditemukan.
                     </p>
                 </div>
             @elseif($data)

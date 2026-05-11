@@ -12,5 +12,5 @@ Route::middleware('api')->group(function () {
 // Protected upload endpoints - require authentication
 Route::middleware(['api'])->group(function () {
     Route::post('/surat-permohonan/upload', [SuratPermohonanController::class, 'uploadAndScan']);
-    Route::post('/surat-laporan/upload', [SuratPermohonanController::class, 'uploadLaporan']);
+    Route::post('/surat-proposal/upload', [SuratPermohonanController::class, 'uploadProposal']);
 });

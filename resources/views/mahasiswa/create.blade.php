@@ -238,10 +238,10 @@
                                 <input type="hidden" name="ocr_extracted_text" value="{{ old('ocr_extracted_text', $ocrData['extracted_text'] ?? '') }}">
                             </div>
 
-                            <!-- Upload Surat Laporan -->
+                            <!-- Upload Surat Proposal -->
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-3">Upload Surat Laporan (PDF)</label>
-                                <div id="suratLaporanDropzone"
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-3">Upload Surat Proposal (PDF)</label>
+                                <div id="suratProposalDropzone"
                                     class="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all relative group bg-gray-50/50">
                                     
                                     <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -250,19 +250,17 @@
                                     <p class="text-sm font-semibold text-gray-700">Tarik file ke sini atau klik untuk pilih</p>
                                     <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-widest font-bold">PDF Max 5MB</p>
 
-                                    <input type="file" id="suratLaporanFile" name="file" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                    <span id="suratLaporanFileName" class="mt-3 text-sm font-bold text-blue-600"></span>
+                                    <input type="file" id="suratProposalFile" name="file" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                    <span id="suratProposalFileName" class="mt-3 text-sm font-bold text-blue-600"></span>
                                 </div>
-                                <input type="hidden" name="surat_laporan_path" id="suratLaporanPath">
-                                <div id="suratLaporanStatus" class="mt-3 hidden"></div>
+                                <input type="hidden" name="proposal_path" id="suratProposalPath">
+                                <div id="suratProposalStatus" class="mt-3 hidden"></div>
                                 @error('file') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                             </div>
 
                             <!-- Keahlian Section (Hidden from student, but sent to DB) -->
                             <input type="hidden" name="keahlian" id="keahlian">
-                            <input type="hidden" name="surat_laporan_raw_text" id="suratLaporanRawText">
-                            <input type="hidden" name="surat_laporan_extracted_text" id="suratLaporanExtractedText">
-                            <input type="hidden" name="keahlian_raw_text" id="keahlianRawText">
+                            <input type="hidden" name="proposal_extracted_text" id="suratProposalExtractedText">
                         </div>
                     </section>
 
@@ -491,52 +489,48 @@
             periodStartEl.onchange = () => { calculatePeriodInfo(); checkQuota(); };
             periodEndEl.onchange = () => { calculatePeriodInfo(); checkQuota(); };
 
-            // Surat Laporan Upload
-            const suratLaporanFile = document.getElementById('suratLaporanFile');
-            const suratLaporanFileName = document.getElementById('suratLaporanFileName');
-            const suratLaporanStatus = document.getElementById('suratLaporanStatus');
-            const suratLaporanPath = document.getElementById('suratLaporanPath');
+            // Surat Proposal Upload
+            const suratProposalFile = document.getElementById('suratProposalFile');
+            const suratProposalFileName = document.getElementById('suratProposalFileName');
+            const suratProposalStatus = document.getElementById('suratProposalStatus');
+            const suratProposalPath = document.getElementById('suratProposalPath');
 
-            suratLaporanFile.onchange = async function() {
+            suratProposalFile.onchange = async function() {
                 const file = this.files[0];
                 if (!file) return;
 
-                suratLaporanFileName.textContent = file.name;
-                suratLaporanStatus.classList.remove('hidden');
-                suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-blue-100 text-blue-700 text-xs font-bold animate-pulse';
-                suratLaporanStatus.innerHTML = 'SEDANG MENGUNGGAH...';
+                suratProposalFileName.textContent = file.name;
+                suratProposalStatus.classList.remove('hidden');
+                suratProposalStatus.className = 'mt-3 p-3 rounded-xl bg-blue-100 text-blue-700 text-xs font-bold animate-pulse';
+                suratProposalStatus.innerHTML = 'SEDANG MENGUNGGAH...';
 
                 const fd = new FormData();
                 fd.append('file', file);
 
                 try {
-                    const res = await fetch('/api/surat-laporan/upload', {
+                    const res = await fetch('/api/surat-proposal/upload', {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': csrf },
                         body: fd
                     });
                     const data = await res.json();
                     if (data.success) {
-                        suratLaporanPath.value = data.file_path;
+                        suratProposalPath.value = data.file_path;
                         
                         // Capture OCR results for database (Hidden from student)
-                        if (data.keahlian) {
-                            document.getElementById('keahlian').value = data.keahlian;
-                        }
-                        if (data.raw_text) document.getElementById('suratLaporanRawText').value = data.raw_text;
-                        if (data.extracted_text) document.getElementById('suratLaporanExtractedText').value = data.extracted_text;
-                        if (data.keahlian_raw_text) document.getElementById('keahlianRawText').value = data.keahlian_raw_text;
+                        if (data.keahlian) document.getElementById('keahlian').value = data.keahlian;
+                        if (data.extracted_text) document.getElementById('suratProposalExtractedText').value = data.extracted_text;
 
-                        suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-green-100 text-green-700 text-xs font-bold';
-                        suratLaporanStatus.innerHTML = '✓ UNGGAH & SCAN BERHASIL';
+                        suratProposalStatus.className = 'mt-3 p-3 rounded-xl bg-green-100 text-green-700 text-xs font-bold';
+                        suratProposalStatus.innerHTML = '✓ UNGGAH & SCAN BERHASIL';
                         lucide.createIcons();
                     } else {
-                        suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-red-100 text-red-700 text-xs font-bold';
-                        suratLaporanStatus.innerHTML = '❌ GAGAL: ' + data.message;
+                        suratProposalStatus.className = 'mt-3 p-3 rounded-xl bg-red-100 text-red-700 text-xs font-bold';
+                        suratProposalStatus.innerHTML = '❌ GAGAL: ' + data.message;
                     }
                 } catch (e) {
-                    suratLaporanStatus.className = 'mt-3 p-3 rounded-xl bg-red-100 text-red-700 text-xs font-bold';
-                    suratLaporanStatus.innerHTML = '❌ TERJADI KESALAHAN';
+                    suratProposalStatus.className = 'mt-3 p-3 rounded-xl bg-red-100 text-red-700 text-xs font-bold';
+                    suratProposalStatus.innerHTML = '❌ TERJADI KESALAHAN';
                 }
             };
         });

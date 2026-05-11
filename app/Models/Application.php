@@ -10,7 +10,6 @@ class Application extends Model
     use HasFactory;
     protected $fillable = [
         'user_id',
-        'registration_code',
         'type',
         'leader_name',
         'leader_nim',
@@ -25,14 +24,10 @@ class Application extends Model
         'period_end',
         'status',
         'hrd_note',
-        'leader_status',
-        'leader_note',
         'surat_permohonan_path',
         'surat_permohonan_extracted_text',
-        'keahlian_raw_text',
-        'surat_laporan_path',
-        'surat_laporan_extracted_text',
-        'surat_laporan_raw_text',
+        'proposal_path',
+        'proposal_extracted_text',
     ];
 
     protected $casts = [

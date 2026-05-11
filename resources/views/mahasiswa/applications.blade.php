@@ -31,7 +31,7 @@
             <div class="flex-1 relative">
                 <i data-lucide="search" class="absolute left-3 top-2.5 w-5 h-5 text-gray-400"></i>
                 <input type="text" name="search" value="{{ request('search') }}" 
-                    placeholder="Cari kode, universitas, atau nama..." 
+                    placeholder="Cari universitas atau nama..." 
                     class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
             </div>
             
@@ -72,7 +72,7 @@
                                         {{ $app->type === 'group' ? '👥' : '👤' }}
                                     </div>
                                     <div>
-                                        <p class="font-mono text-[13px] font-bold text-blue-600 tracking-tighter">{{ $app->registration_code }}</p>
+
                                         <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ $app->leader_name }}</p>
                                         <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">{{ $app->type }}</p>
                                     </div>
@@ -99,34 +99,18 @@
                             </td>
                             <td class="px-6 py-5">
                                 <div class="flex flex-col items-center gap-1">
-                                    @if($app->type === 'individual')
-                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                                            @if($app->leader_status === 'menunggu') bg-yellow-100 text-yellow-700
-                                            @elseif($app->leader_status === 'diterima') bg-green-100 text-green-700
-                                            @elseif($app->leader_status === 'ditolak') bg-red-100 text-red-700
-                                            @endif">
-                                            {{ $app->leader_status ?? 'Menunggu' }}
-                                        </span>
-                                    @else
-                                        <!-- Group Status Summary -->
-                                        <div class="flex flex-col items-center gap-1">
-                                            <div class="flex items-center gap-1">
-                                                <span class="text-[9px] font-bold text-gray-400 uppercase">Ketua:</span>
-                                                <span class="w-2 h-2 rounded-full 
-                                                    @if($app->leader_status === 'menunggu') bg-yellow-400
-                                                    @elseif($app->leader_status === 'diterima') bg-green-400
-                                                    @elseif($app->leader_status === 'ditolak') bg-red-400
-                                                    @endif"></span>
-                                            </div>
-                                            @php
-                                                $accepted = $app->members->where('status', 'diterima')->count();
-                                                $total = $app->members->count();
-                                            @endphp
-                                            <span class="px-2 py-0.5 bg-gray-100 rounded text-[9px] font-bold text-gray-600">
-                                                Anggota: {{ $accepted }}/{{ $total }} OK
-                                            </span>
-                                        </div>
-                                    @endif
+                                    @php
+                                        $statusLabel = $app->status ?? 'menunggu';
+                                        $statusClass = match($statusLabel) {
+                                            'menunggu' => 'bg-yellow-100 text-yellow-700',
+                                            'diterima' => 'bg-green-100 text-green-700',
+                                            'ditolak' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700'
+                                        };
+                                    @endphp
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider {{ $statusClass }}">
+                                        {{ $statusLabel }}
+                                    </span>
                                 </div>
                             </td>
                             <td class="px-6 py-5 text-right">

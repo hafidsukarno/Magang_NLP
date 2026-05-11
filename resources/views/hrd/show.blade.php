@@ -180,17 +180,17 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endif                                 @if($app->surat_laporan_path)
-                                    <a href="{{ route('hrd.application.viewFile', ['id' => $app->id, 'type' => 'laporan']) }}" target="_blank" 
+                                @endif                                 @if($app->proposal_path)
+                                    <a href="{{ route('hrd.application.viewFile', ['id' => $app->id, 'type' => 'proposal']) }}" target="_blank" 
                                         class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-blue-400 transition-all hover:shadow-md hover:-translate-y-0.5 group">
                                         <div class="flex items-center gap-3">
                                             <div class="p-2.5 bg-blue-50 rounded-xl group-hover:bg-blue-500 transition-colors">
                                                 <i data-lucide="file-check" class="w-5 h-5 text-blue-500 group-hover:text-white transition-colors"></i>
                                             </div>
                                             <div>
-                                                <p class="text-xs font-bold text-gray-800">Surat Pelaporan</p>
+                                                <p class="text-xs font-bold text-gray-800">Surat Proposal</p>
                                                 <p class="text-[10px] text-gray-400 italic truncate max-w-[120px]">
-                                                    {{ $app->surat_laporan_title ?? 'Dokumen Pelaporan' }}
+                                                    {{ $app->surat_proposal_title ?? 'Dokumen Proposal' }}
                                                 </p>
                                             </div>
                                         </div>
@@ -205,7 +205,7 @@
                                                 <i data-lucide="file-check" class="w-4 h-4 text-gray-400"></i>
                                             </div>
                                             <div>
-                                                <p class="text-xs font-bold text-gray-500">Surat Pelaporan</p>
+                                                <p class="text-xs font-bold text-gray-500">Surat Proposal</p>
                                                 <p class="text-[10px] text-gray-400 italic">File tidak tersedia</p>
                                             </div>
                                         </div>
@@ -239,27 +239,27 @@
         </div>
         @endif
 
-        <!-- OCR Cleaned Text Section (Laporan) -->
-        @if($app->keahlian_raw_text)
+        <!-- OCR Cleaned Text Section (Proposal) -->
+        @if($app->proposal_extracted_text)
         <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div class="bg-gray-50/50 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <i data-lucide="file-check" class="w-4 h-4 text-blue-600"></i>
-                    Isi Surat Laporan (Cleaned Text)
+                    Isi Surat Proposal (Cleaned Text)
                 </h3>
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
-                        {{ strlen($app->keahlian_raw_text) }} Karakter
+                        {{ strlen($app->proposal_extracted_text) }} Karakter
                     </span>
                 </div>
             </div>
             <div class="p-8">
                 <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner relative group font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
-                    {{ $app->keahlian_raw_text }}
+                    {{ $app->proposal_extracted_text }}
                 </div>
                 <p class="text-[10px] text-gray-400 mt-3 italic flex items-center gap-1.5">
                     <i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i>
-                    Teks di atas adalah hasil pembersihan (pre-processing) otomatis oleh AI dari dokumen laporan.
+                    Teks di atas adalah hasil pembersihan (pre-processing) otomatis oleh AI dari dokumen proposal.
                 </p>
             </div>
         </div>
@@ -418,25 +418,14 @@
                     
                     <div class="flex gap-2">
                         @if($app->status === 'menunggu')
-                            @if($app->type === 'group')
-                                <button type="button" onclick="bulkApproveGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
-                                    <i data-lucide="check-check" class="w-4 h-4"></i>
-                                    Terima Seluruh Kelompok
-                                </button>
-                                <button type="button" onclick="bulkRejectGroup()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
-                                    <i data-lucide="users-2" class="w-4 h-4"></i>
-                                    Tolak Seluruh Kelompok
-                                </button>
-                            @else
-                                <button type="button" onclick="openActionModal('diterima')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-sm">
-                                    <i data-lucide="check" class="w-4 h-4"></i>
-                                    Terima Pengajuan
-                                </button>
-                                <button type="button" onclick="openActionModal('ditolak')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm">
-                                    <i data-lucide="x" class="w-4 h-4"></i>
-                                    Tolak Pengajuan
-                                </button>
-                            @endif
+                            <button type="button" onclick="openActionModal('diterima')" class="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-lg hover:shadow-green-100">
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                                Terima Pengajuan
+                            </button>
+                            <button type="button" onclick="openActionModal('ditolak')" class="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-lg hover:shadow-red-100">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                                Tolak Pengajuan
+                            </button>
                         @endif
                     </div>
                 </div>
@@ -445,10 +434,9 @@
                     <table class="min-w-full border-collapse">
                         <thead>
                             <tr class="bg-gray-50 text-left">
-                                <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Role</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nama & Identitas</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kontak</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th class="px-8 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider w-32">Role</th>
+                                <th class="px-8 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nama & Identitas</th>
+                                <th class="px-8 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kontak Peserta</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -461,29 +449,13 @@
                                         <p class="text-sm font-bold text-gray-800">{{ $app->leader_name }}</p>
                                         <p class="text-[11px] text-gray-500">{{ $app->leader_nim ?? '-' }}</p>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <p class="text-xs text-gray-600">{{ $app->leader_email ?? '-' }}</p>
-                                        <p class="text-xs text-gray-500">{{ $app->leader_phone ?? '-' }}</p>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        @if ($app->leader_status == 'menunggu')
-                                            @if ($compatibility['total'] > 60)
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
-                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
-                                                    <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
-                                                </span>
-                                            @endif
-                                        @else
-                                            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                                @if($app->leader_status == 'diterima') bg-green-100 text-green-700
-                                                @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
-                                                @else bg-gray-100 text-gray-700 @endif">
-                                                {{ $app->leader_status }}
-                                            </span>
-                                        @endif
+                                    <td class="px-8 py-5">
+                                        <p class="text-xs font-medium text-gray-600 flex items-center gap-2">
+                                            <i data-lucide="mail" class="w-3 h-3"></i> {{ $app->leader_email ?? '-' }}
+                                        </p>
+                                        <p class="text-xs font-medium text-gray-500 flex items-center gap-2 mt-1">
+                                            <i data-lucide="phone" class="w-3 h-3"></i> {{ $app->leader_phone ?? '-' }}
+                                        </p>
                                     </td>
                                 </tr>
                             @else
@@ -496,29 +468,13 @@
                                             <p class="text-sm font-bold text-gray-800">{{ $app->leader_name }}</p>
                                             <p class="text-[11px] text-gray-500">{{ $app->leader_nim ?? '-' }}</p>
                                         </td>
-                                        <td class="px-6 py-4">
-                                            <p class="text-xs text-gray-600">{{ $app->leader_email ?? '-' }}</p>
-                                            <p class="text-xs text-gray-500">{{ $app->leader_phone ?? '-' }}</p>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            @if ($app->leader_status == 'menunggu')
-                                                @if ($compatibility['total'] > 60)
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
-                                                    </span>
-                                                @endif
-                                            @else
-                                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                                    @if($app->leader_status == 'diterima') bg-green-100 text-green-700
-                                                    @elseif($app->leader_status == 'ditolak') bg-red-100 text-red-700
-                                                    @else bg-gray-100 text-gray-700 @endif">
-                                                    {{ $app->leader_status }}
-                                                </span>
-                                            @endif
+                                        <td class="px-8 py-5">
+                                            <p class="text-xs font-medium text-gray-600 flex items-center gap-2">
+                                                <i data-lucide="mail" class="w-3 h-3"></i> {{ $app->leader_email ?? '-' }}
+                                            </p>
+                                            <p class="text-xs font-medium text-gray-500 flex items-center gap-2 mt-1">
+                                                <i data-lucide="phone" class="w-3 h-3"></i> {{ $app->leader_phone ?? '-' }}
+                                            </p>
                                         </td>
                                     </tr>
                                 @endif
@@ -533,29 +489,13 @@
                                             <p class="text-sm font-bold text-gray-800">{{ $member->name }}</p>
                                             <p class="text-[11px] text-gray-500">{{ $member->nim ?? '-' }}</p>
                                         </td>
-                                        <td class="px-6 py-4">
-                                            <p class="text-xs text-gray-600">{{ $member->email ?? '-' }}</p>
-                                            <p class="text-xs text-gray-500">{{ $member->phone ?? '-' }}</p>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            @if ($member->status == 'menunggu')
-                                                @if ($compatibility['total'] > 60)
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-blue-100 text-blue-700 border border-blue-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Diterima
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full uppercase bg-red-100 text-red-700 border border-red-200">
-                                                        <i data-lucide="bot" class="w-3 h-3"></i> Rekomendasi Ditolak
-                                                    </span>
-                                                @endif
-                                            @else
-                                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase
-                                                    @if($member->status == 'diterima') bg-green-100 text-green-700
-                                                    @elseif($member->status == 'ditolak') bg-red-100 text-red-700
-                                                    @else bg-gray-100 text-gray-700 @endif">
-                                                    {{ $member->status }}
-                                                </span>
-                                            @endif
+                                        <td class="px-8 py-5">
+                                            <p class="text-xs font-medium text-gray-600 flex items-center gap-2">
+                                                <i data-lucide="mail" class="w-3 h-3"></i> {{ $member->email ?? '-' }}
+                                            </p>
+                                            <p class="text-xs font-medium text-gray-500 flex items-center gap-2 mt-1">
+                                                <i data-lucide="phone" class="w-3 h-3"></i> {{ $member->phone ?? '-' }}
+                                            </p>
                                         </td>
                                     </tr>
                                     @endif
@@ -764,103 +704,5 @@
             }
         });
 
-        // Leader approval functions
-        function approveLead() {
-            Swal.fire({
-                icon: 'question',
-                title: 'Terima Leader',
-                text: 'Apakah Anda yakin ingin menerima leader ini?',
-                showCancelButton: true,
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#6b7280'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `{{ url('/hrd/leader') }}/{{ $app->id }}/update`;
-                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="diterima">`;
-                    form.style.display = 'none';
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
-
-        function rejectLead() {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Tolak Leader',
-                html: `<textarea id="leadNote" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="Masukkan alasan penolakan..."></textarea>`,
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                didOpen: () => document.getElementById('leadNote').focus()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const note = document.getElementById('leadNote').value.trim();
-                    if (!note) {
-                        Swal.fire({ icon: 'error', title: 'Catatan Diperlukan', text: 'Silakan masukkan alasan penolakan', confirmButtonColor: '#ef4444' });
-                        return;
-                    }
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `{{ url('/hrd/leader') }}/{{ $app->id }}/update`;
-                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="ditolak"><input type="hidden" name="hrd_note" value="${note}">`;
-                    form.style.display = 'none';
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
-
-        function approveMember(memberId) {
-            Swal.fire({
-                icon: 'question',
-                title: 'Terima Member',
-                text: 'Apakah Anda yakin ingin menerima member ini?',
-                showCancelButton: true,
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#6b7280'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `{{ url('/hrd/member') }}/${memberId}/update`;
-                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="diterima">`;
-                    form.style.display = 'none';
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
-
-        function rejectMember(memberId) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Tolak Member',
-                html: `<textarea id="memberNote" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="Masukkan alasan penolakan..."></textarea>`,
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                didOpen: () => document.getElementById('memberNote').focus()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const note = document.getElementById('memberNote').value.trim();
-                    if (!note) {
-                        Swal.fire({ icon: 'error', title: 'Catatan Diperlukan', text: 'Silakan masukkan alasan penolakan', confirmButtonColor: '#ef4444' });
-                        return;
-                    }
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `{{ url('/hrd/member') }}/${memberId}/update`;
-                    form.innerHTML = `{{ csrf_field() }}<input type="hidden" name="status" value="ditolak"><input type="hidden" name="hrd_note" value="${note}">`;
-                    form.style.display = 'none';
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
     </script>
-
-
 </x-app-layout>

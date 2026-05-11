@@ -82,6 +82,7 @@ class ApplicationController extends Controller
                     'leader_phone'   => $existingApp->leader_phone,
                     'department_id'  => $existingApp->department_id,
                     'surat_permohonan_path' => $existingApp->surat_permohonan_path,
+                    'proposal_path'  => $existingApp->proposal_path,
                     'members'        => $existingApp->members->map(function($m) {
                         return [
                             'name'          => $m->name,
@@ -205,18 +206,8 @@ class ApplicationController extends Controller
         try {
             if ($r->application_id) {
                 $app = Application::findOrFail($r->application_id);
-                if (strpos($app->registration_code, 'TEMP') !== false) {
-                    do {
-                        $code = 'PAG-' . date('Y') . '-' . strtoupper(Str::random(6));
-                    } while (Application::where('registration_code', $code)->exists());
-                    $app->registration_code = $code;
-                }
             } else {
-                do {
-                    $code = 'PAG-' . date('Y') . '-' . strtoupper(Str::random(6));
-                } while (Application::where('registration_code', $code)->exists());
                 $app = new Application();
-                $app->registration_code = $code;
                 $app->user_id = auth()->id();
             }
 
@@ -233,17 +224,14 @@ class ApplicationController extends Controller
             $app->period_start = $periodStart;
             $app->period_end = $periodEnd;
             $app->status = 'menunggu';
-            $app->leader_status = 'menunggu';
 
             // Save OCR Data from Previous Step (Surat Permohonan)
             if ($r->surat_permohonan_path) $app->surat_permohonan_path = $r->surat_permohonan_path;
             if ($r->ocr_extracted_text) $app->surat_permohonan_extracted_text = $r->ocr_extracted_text;
 
-            // Save OCR Raw Data from Report (Step in this form)
-            if ($r->surat_laporan_path) $app->surat_laporan_path = $r->surat_laporan_path;
-            if ($r->surat_laporan_raw_text) $app->surat_laporan_raw_text = $r->surat_laporan_raw_text;
-            if ($r->surat_laporan_extracted_text) $app->surat_laporan_extracted_text = $r->surat_laporan_extracted_text;
-            if ($r->keahlian_raw_text) $app->keahlian_raw_text = $r->keahlian_raw_text;
+            // Save OCR Data from Proposal
+            if ($r->proposal_path) $app->proposal_path = $r->proposal_path;
+            if ($r->proposal_extracted_text) $app->proposal_extracted_text = $r->proposal_extracted_text;
 
 
 
@@ -259,7 +247,6 @@ class ApplicationController extends Controller
                     $member->nim = $m['nim'] ?? '-';
                     $member->email = $m['email'] ?? '-';
                     $member->phone = $m['phone'] ?? '-';
-                    $member->status = 'menunggu';
                     $member->save();
                 }
             }
@@ -314,7 +301,7 @@ class ApplicationController extends Controller
         $status = request('status');
         $allApplications = Application::where('user_id', $user->id)->with('members')
             ->when($search, function($q) use ($search) {
-                $q->where('leader_name', 'like', "%$search%")->orWhere('registration_code', 'like', "%$search%")->orWhere('university', 'like', "%$search%");
+                $q->where('leader_name', 'like', "%$search%")->orWhere('university', 'like', "%$search%");
             })->latest()->get();
         if ($status && $status !== 'all') {
             $allApplications = $allApplications->filter(function($app) use ($status) {

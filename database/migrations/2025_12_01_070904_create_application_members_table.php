@@ -15,8 +15,6 @@ class CreateApplicationMembersTable extends Migration
             $table->string('nim')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
-            $table->enum('status', ['menunggu', 'diterima', 'ditolak'])->default('menunggu');
-            $table->text('hrd_note')->nullable();
             $table->timestamps();
         });
     }

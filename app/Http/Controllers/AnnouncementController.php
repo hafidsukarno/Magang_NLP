@@ -12,9 +12,9 @@ class AnnouncementController extends Controller
         $data = null;
 
         // Jika user memasukkan kode
-        if ($request->code) {
+        if ($request->nim) {
             $data = Application::with('department')
-                ->where('registration_code', $request->code)
+                ->where('leader_nim', $request->nim)
                 ->first();
         }
 

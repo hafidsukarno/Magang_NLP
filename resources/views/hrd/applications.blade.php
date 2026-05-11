@@ -57,10 +57,9 @@
                 <thead class="bg-gray-50/80 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
                     <tr>
                         <th class="px-4 py-4 border-b border-gray-100 text-center rounded-tl-xl">No</th>
-                        <th class="px-4 py-4 border-b border-gray-100 text-left">Kode</th>
+                        <th class="px-4 py-4 border-b border-gray-100 text-left">Nama / Anggota</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Tanggal</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-center">Tipe</th>
-                        <th class="px-4 py-4 border-b border-gray-100 text-left">Nama / Anggota</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Major</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-left">Departemen</th>
                         <th class="px-4 py-4 border-b border-gray-100 text-center">AI</th>
@@ -74,19 +73,7 @@
                             <td class="px-4 py-4 border-b border-gray-50 text-center font-semibold text-gray-600">
                                 {{ $loop->iteration + ($applications->firstItem() - 1) }}
                             </td>
-                            <td class="px-3 py-2 border font-bold text-gray-900 text-[11px]">
-                                {{ $a->registration_code }}
-                            </td>
-                            <td class="px-3 py-2 border text-[11px] text-gray-700 font-semibold">
-                                {{ $a->created_at->format('d/m/Y') }}
-                            </td>
-                            <td class="px-3 py-2 border text-center">
-                                <span class="px-2 py-1 text-[10px] font-bold rounded-lg uppercase
-                                    @if ($a->type == 'group') bg-blue-100 text-blue-700
-                                    @else bg-purple-100 text-purple-700 @endif">
-                                    {{ ucfirst($a->type) }}
-                                </span>
-                            </td>
+
                             <td class="px-3 py-2 border font-bold text-left text-gray-900">
                                 @if ($a->type === 'group')
                                     <div class="text-sm">
@@ -102,6 +89,17 @@
                                 @else
                                     {{ $a->leader_name }}
                                 @endif
+                            </td>
+
+                            <td class="px-3 py-2 border text-[11px] text-gray-700 font-semibold">
+                                {{ $a->created_at->format('d/m/Y') }}
+                            </td>
+                            <td class="px-3 py-2 border text-center">
+                                <span class="px-2 py-1 text-[10px] font-bold rounded-lg uppercase
+                                    @if ($a->type == 'group') bg-blue-100 text-blue-700
+                                    @else bg-purple-100 text-purple-700 @endif">
+                                    {{ ucfirst($a->type) }}
+                                </span>
                             </td>
                             <td class="px-3 py-2 border text-left font-semibold">{{ $a->major }}</td>
                             <td class="px-3 py-2 border text-left font-semibold">{{ $a->department->name ?? '-' }}</td>
@@ -130,34 +128,7 @@
                                         {{ $a->status }}
                                     </span>
 
-                                    @if ($a->type === 'group')
-                                        <div class="flex items-center gap-2 mt-1">
-                                            {{-- Ketua status --}}
-                                            <div class="flex flex-col items-center">
-                                                <span class="text-[8px] text-gray-400 font-bold">K</span>
-                                                @php
-                                                    $leaderColor = match($a->leader_status) {
-                                                        'diterima' => 'bg-green-50 text-green-600 border-green-100',
-                                                        'ditolak' => 'bg-red-50 text-red-600 border-red-100',
-                                                        default => 'bg-yellow-50 text-yellow-600 border-yellow-100'
-                                                    };
-                                                @endphp
-                                                <span class="px-1 py-0.5 rounded text-[9px] font-bold border {{ $leaderColor }}">
-                                                    {{ strtoupper(substr($a->leader_status, 0, 1)) }}
-                                                </span>
-                                            </div>
-                                            <div class="w-px h-5 bg-gray-200"></div>
-                                            {{-- Member Summary --}}
-                                            <div class="flex flex-col items-center">
-                                                <span class="text-[8px] text-gray-400 font-bold">A</span>
-                                                @php
-                                                    $acc = $a->members->where('status', 'diterima')->count();
-                                                    $tot = $a->members->count();
-                                                @endphp
-                                                <span class="text-[9px] font-bold text-gray-600">{{ $acc }}/{{ $tot }}</span>
-                                            </div>
-                                        </div>
-                                    @endif
+                                    {{-- Individual detail badges removed as status is now centralized --}}
                                 </div>
                             </td>
                             <td class="px-3 py-2 border text-center">

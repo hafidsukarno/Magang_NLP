@@ -12,35 +12,14 @@
         $allApps = \App\Models\Application::whereMonth('created_at', $currentMonth)->get();
         
         foreach ($allApps as $app) {
-            if ($app->type === 'individual') {
-                // Individual: tergantung leader_status
-                if ($app->leader_status == 'diterima') {
-                    $lolos_count++;
-                } elseif ($app->leader_status == 'ditolak') {
-                    $tidak_lolos_count++;
-                } elseif ($app->leader_status == 'menunggu') {
-                    $pending_count++;
-                }
+            $peopleCount = $app->type === 'group' ? ($app->members->count() + 1) : 1;
+            
+            if ($app->status == 'diterima') {
+                $lolos_count += $peopleCount;
+            } elseif ($app->status == 'ditolak') {
+                $tidak_lolos_count += $peopleCount;
             } else {
-                // Group: hitung leader + members
-                if ($app->leader_status == 'diterima') {
-                    $lolos_count++;
-                } elseif ($app->leader_status == 'ditolak') {
-                    $tidak_lolos_count++;
-                } elseif ($app->leader_status == 'menunggu') {
-                    $pending_count++;
-                }
-                
-                // Hitung members
-                foreach ($app->members as $member) {
-                    if ($member->status == 'diterima') {
-                        $lolos_count++;
-                    } elseif ($member->status == 'ditolak') {
-                        $tidak_lolos_count++;
-                    } elseif ($member->status == 'menunggu') {
-                        $pending_count++;
-                    }
-                }
+                $pending_count += $peopleCount;
             }
         }
 
@@ -198,15 +177,9 @@
 
                                         $acceptedPeople = 0;
                                         foreach ($appsInPeriod as $a) {
-                                            if ($a->type === 'individual') {
-                                                if ($a->leader_status == 'diterima') {
-                                                    $acceptedPeople++;
-                                                }
-                                            } else {
-                                                if ($a->leader_status == 'diterima') {
-                                                    $acceptedPeople++;
-                                                }
-                                                $acceptedPeople += $a->members->where('status', 'diterima')->count();
+                                            $peopleCount = $a->type === 'group' ? ($a->members->count() + 1) : 1;
+                                            if ($a->status == 'diterima') {
+                                                $acceptedPeople += $peopleCount;
                                             }
                                         }
 
@@ -276,48 +249,17 @@
                                 <td class="px-1 py-1 border font-semibold text-gray-800">{{ $a->department->name ?? '-' }}</td>
                                 <td class="px-1 py-0.5 border">
                                     <div class="flex flex-col items-center gap-1 py-1">
-                                        @if ($a->type === 'individual')
-                                            @php
-                                                $statusColor = match($a->leader_status) {
-                                                    'menunggu' => 'bg-yellow-100 text-yellow-700',
-                                                    'diterima' => 'bg-green-100 text-green-700',
-                                                    'ditolak' => 'bg-red-100 text-red-700',
-                                                    default => 'bg-gray-100 text-gray-700'
-                                                };
-                                            @endphp
-                                            <span class="px-2 py-0.5 text-[10px] font-bold rounded {{ $statusColor }}">
-                                                {{ strtoupper($a->leader_status) }}
-                                            </span>
-                                        @else
-                                            <div class="flex items-center gap-2">
-                                                {{-- Ketua Status --}}
-                                                <div class="flex flex-col items-center">
-                                                    <span class="text-[9px] text-gray-400 font-bold uppercase">K</span>
-                                                    @php
-                                                        $leaderColor = match($a->leader_status) {
-                                                            'diterima' => 'bg-green-100 text-green-700',
-                                                            'ditolak' => 'bg-red-100 text-red-700',
-                                                            default => 'bg-yellow-100 text-yellow-700'
-                                                        };
-                                                    @endphp
-                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold {{ $leaderColor }}">
-                                                        {{ strtoupper(substr($a->leader_status, 0, 1)) }}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div class="w-px h-6 bg-gray-200"></div>
-
-                                                {{-- Anggota Summary --}}
-                                                <div class="flex flex-col items-center">
-                                                    <span class="text-[9px] text-gray-400 font-bold uppercase">A</span>
-                                                    @php
-                                                        $accepted = $a->members->where('status', 'diterima')->count();
-                                                        $total = $a->members->count();
-                                                    @endphp
-                                                    <span class="text-[10px] font-bold text-gray-700">{{ $accepted }}/{{ $total }}</span>
-                                                </div>
-                                            </div>
-                                        @endif
+                                        @php
+                                            $statusColor = match($a->status) {
+                                                'menunggu' => 'bg-yellow-100 text-yellow-700',
+                                                'diterima' => 'bg-green-100 text-green-700',
+                                                'ditolak' => 'bg-red-100 text-red-700',
+                                                default => 'bg-gray-100 text-gray-700'
+                                            };
+                                        @endphp
+                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider {{ $statusColor }}">
+                                            {{ $a->status ?? 'menunggu' }}
+                                        </span>
                                     </div>
                                 </td>
                                 <td class="px-1 py-0.5 border">

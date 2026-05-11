@@ -85,7 +85,7 @@ class SuratPermohonanController extends Controller {
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
     }
-    public function uploadLaporan(Request $request) {
+    public function uploadProposal(Request $request) {
         set_time_limit(0); // Nonaktifkan batas waktu eksekusi PHP
         // Validate with proper error handling
         try {
@@ -103,7 +103,7 @@ class SuratPermohonanController extends Controller {
         try {
             // Save file
             $file = $request->file('file');
-            $filePath = $file->store('surat_laporan', 'public');
+            $filePath = $file->store('surat_proposal', 'public');
             $fullPath = storage_path('app/public/' . $filePath);
 
             // Verify file exists
@@ -126,7 +126,7 @@ class SuratPermohonanController extends Controller {
                     $rawText = $ocrData['raw_text'] ?? '-';
                 }
             } catch (\Exception $ocrError) {
-                Log::error("❌ OCR Laporan Error: " . $ocrError->getMessage());
+                Log::error("❌ OCR Proposal Error: " . $ocrError->getMessage());
             }
 
             // 2. Call Skill Extraction Service (Port 5005)
@@ -145,21 +145,19 @@ class SuratPermohonanController extends Controller {
                     $keahlianRawText = $skillData['clean_text'] ?? ($skillData['raw_text'] ?? '-');
                 }
             } catch (\Exception $skillError) {
-                Log::error("❌ Skill Laporan Error: " . $skillError->getMessage());
+                Log::error("❌ Skill Proposal Error: " . $skillError->getMessage());
             }
 
             return response()->json([
                 'success'           => true,
                 'file_path'         => $filePath,
                 'keahlian'          => $keahlian,
-                'extracted_text'    => $extractedText, // Cleaned text from general OCR
-                'raw_text'          => $rawText,       // Raw text from general OCR
-                'keahlian_raw_text' => $keahlianRawText, // Cleaned/Processed skill source
-                'message'           => 'Surat laporan berhasil di-upload dan di-scan'
+                'extracted_text'    => $keahlianRawText, // This is the cleaned text HRD wants to see
+                'message'           => 'Surat proposal berhasil di-upload and di-scan'
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Surat Laporan Upload Exception", [
+            Log::error("Surat Proposal Upload Exception", [
                 "error" => $e->getMessage()
             ]);
             return response()->json([

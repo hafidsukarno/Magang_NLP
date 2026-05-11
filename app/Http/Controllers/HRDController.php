@@ -15,7 +15,13 @@ class HRDController extends Controller {
             $q->where('status','diterima');
         }])->get();
 
-        $applications = Application::latest()->paginate(20);
+        $applications = Application::orderByRaw("CASE 
+                WHEN status = 'menunggu' THEN 1 
+                WHEN status = 'diterima' THEN 2 
+                WHEN status = 'ditolak' THEN 3 
+                ELSE 4 END")
+            ->latest()
+            ->paginate(20);
 
         return view('hrd.dashboard', compact('applications','departments'));
     }
@@ -260,8 +266,9 @@ class HRDController extends Controller {
             // Custom Sort: Menunggu (1), Diproses (2), then others
             ->orderByRaw("CASE 
                 WHEN status = 'menunggu' THEN 1 
-                WHEN status = 'diproses' THEN 2 
-                ELSE 3 END")
+                WHEN status = 'diterima' THEN 2 
+                WHEN status = 'ditolak' THEN 3 
+                ELSE 4 END")
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -368,27 +375,6 @@ class HRDController extends Controller {
 
             $app->save();
 
-            // SINKRONISASI MASSAL UNTUK KELOMPOK
-            // Jika status utama diubah (Diterima/Ditolak), samakan status ketua dan semua anggota
-            if ($app->type === 'group' && in_array($newStatus, ['diterima', 'ditolak'])) {
-                $app->leader_status = $newStatus;
-                $app->leader_note = $r->hrd_note;
-                $app->save();
-
-                foreach ($app->members as $member) {
-                    $member->status = $newStatus;
-                    if ($newStatus === 'ditolak') {
-                        $member->hrd_note = $r->hrd_note;
-                    }
-                    $member->save();
-                }
-            } elseif ($app->type === 'individual') {
-                // Untuk individual, status aplikasi = status leader
-                $app->leader_status = $newStatus;
-                $app->leader_note = $r->hrd_note;
-                $app->save();
-            }
-
             DB::commit();
             return back()->with('success','Data berhasil diperbarui.');
         } catch (\Throwable $ex) {
@@ -401,7 +387,7 @@ class HRDController extends Controller {
 
     /**
      * View any application related file safely.
-     * Supports type query: main, permohonan, laporan.
+     * Supports type query: main, permohonan, proposal.
      */
     public function viewFile(Request $r, $id) {
         $app = Application::findOrFail($id);
@@ -410,10 +396,10 @@ class HRDController extends Controller {
         $path = '';
         if ($type === 'permohonan') {
             $path = $app->surat_permohonan_path;
-        } elseif ($type === 'laporan' || $type === 'main') {
-            $path = $app->surat_laporan_path;
+        } elseif ($type === 'proposal' || $type === 'main') {
+            $path = $app->proposal_path;
         } else {
-            $path = $app->surat_laporan_path;
+            $path = $app->proposal_path;
         }
 
         if (!$path) {
@@ -435,253 +421,5 @@ class HRDController extends Controller {
         }
 
         abort(404, 'File fisik tidak ditemukan di server.');
-    }
-
-    /**
-     * Update status untuk member tertentu dalam group application
-     */
-    public function updateMember(Request $r, $memberId) {
-        $r->validate([
-            'status' => 'required|in:menunggu,diterima,ditolak',
-            'hrd_note' => 'nullable|string',
-        ]);
-
-        $member = \App\Models\ApplicationMember::findOrFail($memberId);
-        $app = $member->application;
-
-        // If rejecting, require hrd_note
-        if ($r->status === 'ditolak' && trim($r->hrd_note ?? '') === '') {
-            return back()->withErrors(['hrd_note' => 'Keterangan penolakan wajib diisi.'])->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            // Only check quota when moving to 'diterima'
-            if ($r->status === 'diterima') {
-                $targetDeptId = $app->department_id;
-                if (!$targetDeptId) {
-                    DB::rollBack();
-                    return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
-                }
-
-                // Validasi kesesuaian jurusan
-                $targetDept = Department::with('majors')->find($targetDeptId);
-                if ($targetDept && !$this->isMajorMatch($app, $targetDept)) {
-                    DB::rollBack();
-                    $syarat = $targetDept->majors->pluck('name')->join(', ');
-                    return back()->withErrors([
-                        'quota' => "Jurusan mahasiswa ({$app->major}) tidak sesuai dengan syarat departemen {$targetDept->name}. Syarat jurusan: {$syarat}."
-                    ])->withInput();
-                }
-
-                // Ambil kuota langsung dari departemen
-                $dept = Department::find($targetDeptId);
-                $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
-
-                if ($quotaValue > 0) {
-                    // Tentukan berapa quota yang dibutuhkan
-                    // - Individual: leader = 1 orang
-                    // - Group: leader (ketua) = 1 orang + members
-                    $neededPeople = 1; // 1 untuk member yang sedang diproses
-
-                    // count already accepted PEOPLE overlapping the period, exclude this application
-                    $existingApps = Application::where('department_id', $targetDeptId)
-                        ->where('id', '!=', $app->id)
-                        ->where(function ($q) use ($app) {
-                            $q->where('period_start', '<=', $app->period_end)
-                              ->where('period_end', '>=', $app->period_start);
-                        })
-                        ->get();
-
-                    $usedPeople = 0;
-                    foreach ($existingApps as $a) {
-                        if ($a->type === 'individual') {
-                            // Individual: hitung jika leader diterima
-                            if ($a->leader_status == 'diterima') {
-                                $usedPeople++;
-                            }
-                        } else {
-                            // Group: hitung ketua + members yang diterima
-                            if ($a->leader_status == 'diterima') {
-                                $usedPeople++; // ketua
-                            }
-                            $usedPeople += $a->members->where('status', 'diterima')->count();
-                        }
-                    }
-
-                    if (($usedPeople + $neededPeople) > $quotaValue) {
-                        DB::rollBack();
-                        return back()->withErrors(['quota' => 'Kuota sudah penuh untuk periode tersebut — tidak dapat menerima member ini.'])->withInput();
-                    }
-                } else {
-                    DB::rollBack();
-                    return back()->withErrors(['quota' => 'Tidak ada kuota yang tersedia untuk departemen ini.'])->withInput();
-                }
-            }
-
-            // Update member status
-            $member->status = $r->status;
-            if ($r->status === 'ditolak') {
-                $member->hrd_note = $r->hrd_note;
-            } else {
-                $member->hrd_note = $r->hrd_note ?: null;
-            }
-            $member->save();
-
-            // Sync aplikasi status: jika semua (leader + members) sudah punya keputusan, ubah status ke 'selesai'
-            $this->syncApplicationStatus($app);
-
-            DB::commit();
-            return back()->with('success', 'Status member berhasil diperbarui.');
-        } catch (\Throwable $ex) {
-            DB::rollBack();
-            Log::error('Member update error: '.$ex->getMessage());
-            return back()->withErrors(['general' => 'Terjadi kesalahan, silakan coba lagi.']);
-        }
-    }
-
-    /**
-     * Update status untuk leader (ketua tim) dalam group application
-     */
-    public function updateLeader(Request $r, $appId) {
-        $r->validate([
-            'status' => 'required|in:menunggu,diterima,ditolak',
-            'hrd_note' => 'nullable|string',
-        ]);
-
-        $app = Application::findOrFail($appId);
-
-        // If rejecting, require hrd_note
-        if ($r->status === 'ditolak' && trim($r->hrd_note ?? '') === '') {
-            return back()->withErrors(['hrd_note' => 'Keterangan penolakan wajib diisi.'])->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            // Only check quota when moving to 'diterima'
-            if ($r->status === 'diterima') {
-                $targetDeptId = $app->department_id;
-                if (!$targetDeptId) {
-                    DB::rollBack();
-                    return back()->withErrors(['department_id' => 'Tidak ada departemen tujuan untuk diterima.'])->withInput();
-                }
-
-                // Validasi kesesuaian jurusan
-                $targetDept = Department::with('majors')->find($targetDeptId);
-                if ($targetDept && !$this->isMajorMatch($app, $targetDept)) {
-                    DB::rollBack();
-                    $syarat = $targetDept->majors->pluck('name')->join(', ');
-                    return back()->withErrors([
-                        'quota' => "Jurusan mahasiswa ({$app->major}) tidak sesuai dengan syarat departemen {$targetDept->name}. Syarat jurusan: {$syarat}."
-                    ])->withInput();
-                }
-
-                // Ambil kuota langsung dari departemen
-                $dept = Department::find($targetDeptId);
-                $quotaValue = $dept ? (int)($dept->quota ?? 0) : 0;
-
-                if ($quotaValue > 0) {
-                    // Tentukan berapa quota yang dibutuhkan
-                    // - Individual: leader = 1 orang
-                    // - Group: leader (ketua) = 1 orang
-                    $neededPeople = 1;
-
-                    // count already accepted PEOPLE overlapping the period, exclude this application
-                    $existingApps = Application::where('department_id', $targetDeptId)
-                        ->where('id', '!=', $app->id)
-                        ->where(function ($q) use ($app) {
-                            $q->where('period_start', '<=', $app->period_end)
-                              ->where('period_end', '>=', $app->period_start);
-                        })
-                        ->get();
-
-                    $usedPeople = 0;
-                    foreach ($existingApps as $a) {
-                        if ($a->type === 'individual') {
-                            // Individual: hitung jika leader diterima
-                            if ($a->leader_status == 'diterima') {
-                                $usedPeople++;
-                            }
-                        } else {
-                            // Group: hitung ketua + members yang diterima
-                            if ($a->leader_status == 'diterima') {
-                                $usedPeople++; // ketua
-                            }
-                            $usedPeople += $a->members->where('status', 'diterima')->count();
-                        }
-                    }
-
-                    if (($usedPeople + $neededPeople) > $quotaValue) {
-                        DB::rollBack();
-                        return back()->withErrors(['quota' => 'Kuota sudah penuh untuk periode tersebut — tidak dapat menerima leader.'])->withInput();
-                    }
-                } else {
-                    DB::rollBack();
-                    return back()->withErrors(['quota' => 'Tidak ada kuota yang tersedia untuk departemen ini.'])->withInput();
-                }
-            }
-
-            // Update leader status
-            $app->leader_status = $r->status;
-            if ($r->status === 'ditolak') {
-                $app->leader_note = $r->hrd_note;
-            } else {
-                $app->leader_note = $r->hrd_note ?: null;
-            }
-            $app->save();
-
-            // Sync aplikasi status: jika semua (leader + members) sudah punya keputusan, ubah status ke 'selesai'
-            $this->syncApplicationStatus($app);
-
-            DB::commit();
-            return back()->with('success', 'Status leader berhasil diperbarui.');
-        } catch (\Throwable $ex) {
-            DB::rollBack();
-            Log::error('Leader update error: '.$ex->getMessage());
-            return back()->withErrors(['general' => 'Terjadi kesalahan, silakan coba lagi.']);
-        }
-    }
-
-    /**
-     * Sync status aplikasi:
-     * - Jika tipe individual: check leader status
-     * - Jika tipe group: check leader + semua members
-     * - Jika semua sudah punya keputusan (tidak ada 'menunggu'), ubah app status menjadi 'selesai'
-     */
-    private function syncApplicationStatus(Application $app) {
-        $app = $app->fresh(['members']);
-
-        // Jika Individual: Status aplikasi = Status leader
-        if ($app->type === 'individual') {
-            if ($app->leader_status !== 'menunggu') {
-                $app->status = $app->leader_status;
-                $app->save();
-            }
-            return;
-        }
-
-        // Jika Group:
-        $memberStatuses = $app->members->pluck('status')->toArray();
-        $memberStatuses[] = $app->leader_status;
-
-        $hasMenunggu = in_array('menunggu', $memberStatuses);
-        $hasDiterima = in_array('diterima', $memberStatuses);
-        $hasDitolak = in_array('ditolak', $memberStatuses);
-
-        if ($hasMenunggu) {
-            // Masih ada yang belum diputuskan
-            $app->status = 'diproses';
-        } else {
-            // Semua sudah diputuskan
-            if ($hasDiterima) {
-                // Ada setidaknya satu yang diterima
-                $app->status = 'diterima';
-            } else {
-                // Semua ditolak
-                $app->status = 'ditolak';
-            }
-        }
-        
-        $app->save();
     }
 }

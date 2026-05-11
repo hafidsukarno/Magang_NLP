@@ -128,7 +128,6 @@
                     @forelse($applications as $app)
                         <tr class="hover:bg-gray-50/50 transition-colors">
                             <td class="px-8 py-5">
-                                <p class="font-mono text-[12px] font-bold text-blue-600 tracking-tighter">{{ $app->registration_code }}</p>
                                 <p class="text-sm font-semibold text-gray-800 mt-1">{{ $app->university }}</p>
                                 <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">{{ $app->type }}</p>
                             </td>
@@ -138,28 +137,18 @@
                             </td>
                             <td class="px-8 py-5">
                                 <div class="flex flex-col items-center gap-1.5">
-                                    @if ($app->type === 'individual')
-                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                                            @if($app->leader_status === 'menunggu') bg-yellow-100 text-yellow-700
-                                            @elseif($app->leader_status === 'diterima') bg-green-100 text-green-700
-                                            @elseif($app->leader_status === 'ditolak') bg-red-100 text-red-700
-                                            @endif">
-                                            {{ $app->leader_status ?? 'menunggu' }}
-                                        </span>
-                                    @else
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-2.5 h-2.5 rounded-full 
-                                                @if($app->leader_status === 'menunggu') bg-yellow-400
-                                                @elseif($app->leader_status === 'diterima') bg-green-400
-                                                @elseif($app->leader_status === 'ditolak') bg-red-400
-                                                @endif"></span>
-                                            @php
-                                                $okCount = $app->members->where('status', 'diterima')->count();
-                                                $totalCount = $app->members->count();
-                                            @endphp
-                                            <span class="text-[11px] font-bold text-gray-600">{{ $okCount }}/{{ $totalCount }} Anggota</span>
-                                        </div>
-                                    @endif
+                                    @php
+                                        $statusLabel = $app->status ?? 'menunggu';
+                                        $statusClass = match($statusLabel) {
+                                            'menunggu' => 'bg-yellow-100 text-yellow-700',
+                                            'diterima' => 'bg-green-100 text-green-700',
+                                            'ditolak' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700'
+                                        };
+                                    @endphp
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider {{ $statusClass }}">
+                                        {{ $statusLabel }}
+                                    </span>
                                 </div>
                             </td>
                              <td class="px-8 py-5 text-right">

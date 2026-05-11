@@ -1,4 +1,4 @@
-@section('title', 'Detail Pengajuan - ' . $app->registration_code)
+@section('title', 'Detail Pengajuan')
 <x-app-layout>
     <div class="p-6 bg-gray-50 min-h-screen">
         <!-- BREADCRUMB -->
@@ -9,7 +9,7 @@
             <i data-lucide="chevron-right" class="w-3 h-3"></i>
             <a href="{{ route('mahasiswa.applications.index') }}" class="hover:text-blue-600 transition">Riwayat</a>
             <i data-lucide="chevron-right" class="w-3 h-3"></i>
-            <span class="text-gray-800 font-semibold font-mono">{{ $app->registration_code }}</span>
+            <span class="text-gray-800 font-semibold font-mono">Detail</span>
         </div>
 
         <div class="max-w-6xl mx-auto space-y-6">
@@ -24,7 +24,6 @@
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900">Detail Pengajuan Magang</h1>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-gray-500 text-sm font-mono tracking-wider">{{ $app->registration_code }}</span>
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest {{ $app->type === 'group' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700' }}">
                                     {{ $app->type }}
                                 </span>
@@ -44,7 +43,7 @@
                                 'diterima' => 'bg-green-500 shadow-green-100',
                                 'ditolak'  => 'bg-red-500 shadow-red-100'
                             ];
-                            $statusLabel = $app->leader_status ?? 'menunggu';
+                            $statusLabel = $app->status ?? 'menunggu';
                         @endphp
                         
                         <div class="flex flex-col items-end">
@@ -116,7 +115,6 @@
                                 <thead class="bg-gray-50 border-y border-gray-100">
                                     <tr>
                                         <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Identitas</th>
-                                        <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
@@ -129,16 +127,7 @@
                                                 <p class="text-xs text-blue-500 mt-1">{{ $member->email }}</p>
                                             </td>
                                             <td class="px-8 py-5 text-right">
-                                                <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                                                    @if($member->status === 'menunggu') bg-yellow-100 text-yellow-700
-                                                    @elseif($member->status === 'diterima') bg-green-100 text-green-700
-                                                    @elseif($member->status === 'ditolak') bg-red-100 text-red-700
-                                                    @endif">
-                                                    {{ $member->status }}
-                                                </span>
-                                                @if($member->status === 'ditolak' && $member->hrd_note)
-                                                    <p class="text-[10px] text-red-400 mt-2 italic font-medium">"{{ $member->hrd_note }}"</p>
-                                                @endif
+                                                {{-- Status individual member dihapus --}}
                                             </td>
                                         </tr>
                                         @endif
@@ -208,15 +197,15 @@
                         </div>
                         
                         <div class="space-y-4">
-                            @if($app->surat_laporan_path)
-                            <a href="{{ Storage::disk('public')->url($app->surat_laporan_path) }}" target="_blank"
+                            @if($app->proposal_path)
+                            <a href="{{ Storage::disk('public')->url($app->proposal_path) }}" target="_blank"
                                 class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-blue-400 transition-all hover:shadow-md group">
                                 <div class="flex items-center gap-3">
                                     <div class="p-2.5 bg-blue-50 rounded-xl group-hover:bg-blue-600 transition-colors">
                                         <i data-lucide="file-check" class="w-5 h-5 text-blue-600 group-hover:text-white transition-colors"></i>
                                     </div>
                                     <div>
-                                        <p class="text-xs font-bold text-gray-800">Proposal / Laporan Magang</p>
+                                        <p class="text-xs font-bold text-gray-800">Surat Proposal Magang</p>
                                         <p class="text-[10px] text-gray-400 italic">Klik untuk melihat dokumen</p>
                                     </div>
                                 </div>
