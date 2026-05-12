@@ -29,7 +29,6 @@
         // Ambil departemen pertama untuk default tampilan
         $firstDepartment = $departments->first();
         $otherDepartments = $departments->slice(1);
-        $today = \Carbon\Carbon::today()->toDateString();
     @endphp
 
     <div class="px-2 md:px-4 py-2">
@@ -116,36 +115,26 @@
                     <tbody class="text-gray-700 text-center">
                         @if ($firstDepartment)
                             @php
-                                // Kuota numerik diambil langsung dari kolom departments
                                 $quotaValue = (int) ($firstDepartment->quota ?? 0);
 
-                                // Hitung accepted people yang sedang aktif (overlap hari ini)
-                                $appsInPeriod = \App\Models\Application::where('department_id', $firstDepartment->id)
-                                    ->where('period_start', '<=', $today)
-                                    ->where('period_end', '>=', $today)
+                                // Hitung accepted people (semua yang statusnya diterima)
+                                $appsInDept = \App\Models\Application::where('department_id', $firstDepartment->id)
+                                    ->where('status', 'diterima')
+                                    ->with('members')
                                     ->get();
 
                                 $acceptedPeople = 0;
-                                foreach ($appsInPeriod as $a) {
-                                    if ($a->type === 'individual') {
-                                        if ($a->leader_status == 'diterima') {
-                                            $acceptedPeople++;
-                                        }
-                                    } else {
-                                        if ($a->leader_status == 'diterima') {
-                                            $acceptedPeople++;
-                                        }
-                                        $acceptedPeople += $a->members->where('status', 'diterima')->count();
-                                    }
+                                foreach ($appsInDept as $a) {
+                                    $acceptedPeople += $a->type === 'group' ? ($a->members->count() + 1) : 1;
                                 }
 
                                 $remainingQuota = max(0, $quotaValue - $acceptedPeople);
                             @endphp
 
-                            <tr class="hover:bg-gray-50 transition">
+                            <tr class="hover:bg-gray-50 transition border-b">
                                 <td class="px-2 py-1 border font-medium text-left">{{ $firstDepartment->name }}</td>
                                 <td class="px-2 py-1 border text-center">
-                                    <span class="font-semibold ">{{ $quotaValue }}</span>
+                                    <span class="font-semibold">{{ $quotaValue }}</span>
                                 </td>
                                 <td class="px-2 py-1 border text-blue-600 font-semibold">
                                     <i data-lucide="users" class="inline w-4 h-4"></i> {{ $acceptedPeople }}
@@ -162,25 +151,22 @@
             </div>
 
             @if ($otherDepartments->count() > 0)
-                <div id="expandedDeptWrapper" class="overflow-hidden transition-all duration-500 max-h-0 mt-1">
+                <div id="expandedDeptWrapper" class="overflow-hidden transition-all duration-500 max-h-0">
                     <div id="expandedDeptTable" class="overflow-x-auto">
-                        <table class="w-full text-xs md:text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed">
+                        <table class="w-full text-xs md:text-sm border border-gray-200 border-t-0 rounded-b-lg overflow-hidden table-fixed">
                             <tbody class="text-gray-700 text-center">
                                 @foreach ($otherDepartments as $d)
-                                        // tetap ambil kuota dari departments
+                                    @php
                                         $quotaValue = (int) ($d->quota ?? 0);
 
-                                        $appsInPeriod = \App\Models\Application::where('department_id', $d->id)
-                                            ->where('period_start', '<=', $today)
-                                            ->where('period_end', '>=', $today)
+                                        $appsInDept = \App\Models\Application::where('department_id', $d->id)
+                                            ->where('status', 'diterima')
+                                            ->with('members')
                                             ->get();
 
                                         $acceptedPeople = 0;
-                                        foreach ($appsInPeriod as $a) {
-                                            $peopleCount = $a->type === 'group' ? ($a->members->count() + 1) : 1;
-                                            if ($a->status == 'diterima') {
-                                                $acceptedPeople += $peopleCount;
-                                            }
+                                        foreach ($appsInDept as $a) {
+                                            $acceptedPeople += $a->type === 'group' ? ($a->members->count() + 1) : 1;
                                         }
 
                                         $remainingQuota = max(0, $quotaValue - $acceptedPeople);

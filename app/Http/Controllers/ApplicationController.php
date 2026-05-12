@@ -278,17 +278,34 @@ class ApplicationController extends Controller
         foreach ($allApps as $app) {
             if ($app->type === 'individual') {
                 $summary['total_individual']++;
-                if ($app->leader_status == 'menunggu') { $summary['menunggu']++; $summary['menunggu_individual']++; }
-                elseif ($app->leader_status == 'diterima') { $summary['diterima']++; $summary['diterima_individual']++; $summary['diterima_count']++; }
-                elseif ($app->leader_status == 'ditolak') { $summary['ditolak']++; $summary['ditolak_count']++; }
             } else {
                 $summary['total_group']++;
-                $allMembersReviewed = $app->members->every(fn($m) => $m->status !== 'menunggu') && $app->leader_status !== 'menunggu';
-                if (!$allMembersReviewed) { $summary['menunggu']++; $summary['menunggu_group']++; }
-                $diterima_people = ($app->leader_status == 'diterima' ? 1 : 0) + $app->members->where('status', 'diterima')->count();
-                if ($diterima_people > 0) { $summary['diterima']++; $summary['diterima_group']++; $summary['diterima_count'] += $diterima_people; }
-                $ditolak_people = ($app->leader_status == 'ditolak' ? 1 : 0) + $app->members->where('status', 'ditolak')->count();
-                if ($ditolak_people > 0) { $summary['ditolak']++; $summary['ditolak_count'] += $ditolak_people; }
+            }
+
+            if ($app->status == 'menunggu') {
+                $summary['menunggu']++;
+                if ($app->type === 'individual') {
+                    $summary['menunggu_individual']++;
+                } else {
+                    $summary['menunggu_group']++;
+                }
+            } elseif ($app->status == 'diterima') {
+                $summary['diterima']++;
+                if ($app->type === 'individual') {
+                    $summary['diterima_individual']++;
+                } else {
+                    $summary['diterima_group']++;
+                }
+                
+                // If it's a group, count all members + leader
+                $count = ($app->type === 'group') ? ($app->members->count() + 1) : 1;
+                $summary['diterima_count'] += $count;
+            } elseif ($app->status == 'ditolak') {
+                $summary['ditolak']++;
+                
+                // If it's a group, count all members + leader
+                $count = ($app->type === 'group') ? ($app->members->count() + 1) : 1;
+                $summary['ditolak_count'] += $count;
             }
         }
         return view('mahasiswa.dashboard', compact('applications', 'summary'));
@@ -305,11 +322,7 @@ class ApplicationController extends Controller
             })->latest()->get();
         if ($status && $status !== 'all') {
             $allApplications = $allApplications->filter(function($app) use ($status) {
-                if ($app->type === 'individual') return $app->leader_status === $status;
-                if ($status === 'menunggu') return $app->leader_status === 'menunggu' || $app->members->where('status', 'menunggu')->count() > 0;
-                if ($status === 'diterima') return $app->leader_status === 'diterima' && $app->members->where('status', 'diterima')->count() > 0;
-                if ($status === 'ditolak') return $app->leader_status === 'ditolak' || $app->members->where('status', 'ditolak')->count() > 0;
-                return true;
+                return $app->status === $status;
             });
         }
         $page = request('page', 1); $perPage = 10;

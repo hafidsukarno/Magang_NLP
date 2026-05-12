@@ -64,6 +64,7 @@
                 <p class="text-3xl font-black text-yellow-600">{{ $summary['menunggu'] }}</p>
                 <div class="mt-4 flex items-center gap-2">
                     <span class="px-2 py-0.5 bg-yellow-50 text-yellow-600 text-[9px] font-bold rounded uppercase tracking-tighter">{{ $summary['menunggu_individual'] }} Individu</span>
+                    <span class="px-2 py-0.5 bg-orange-50 text-orange-600 text-[9px] font-bold rounded uppercase tracking-tighter">{{ $summary['menunggu_group'] }} Kelompok</span>
                 </div>
             </div>
         </div>

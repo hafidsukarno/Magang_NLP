@@ -15,7 +15,7 @@
     </script>
 @endif
 <x-app-layout>
-    <div class="container mx-auto px-6 py-8">
+    <div class="container mx-auto px-4 md:px-6 py-8 space-y-8">
 
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -215,52 +215,65 @@
                         </div>
                     </div>
             </div>
+            </div>
         </div>
 
-        <!-- OCR Raw Text Section (Permohonan) -->
-        @if($app->surat_permohonan_extracted_text)
+        <!-- Dokumen OCR (Permohonan & Proposal) -->
+        @if($app->surat_permohonan_extracted_text || $app->proposal_extracted_text)
         <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div class="bg-gray-50/50 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <i data-lucide="file-search" class="w-4 h-4 text-blue-600"></i>
-                    Isi Surat Permohonan (OCR Raw Text)
+                    Hasil OCR Dokumen
                 </h3>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
-                        {{ strlen($app->surat_permohonan_extracted_text) }} Karakter
-                    </span>
-                </div>
             </div>
-            <div class="p-8">
-                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner relative group font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
-                    {{ $app->surat_permohonan_extracted_text }}
-                </div>
-            </div>
-        </div>
-        @endif
+            <div class="p-8 space-y-8">
 
-        <!-- OCR Cleaned Text Section (Proposal) -->
-        @if($app->proposal_extracted_text)
-        <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div class="bg-gray-50/50 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
-                <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                    <i data-lucide="file-check" class="w-4 h-4 text-blue-600"></i>
-                    Isi Surat Proposal (Cleaned Text)
-                </h3>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
-                        {{ strlen($app->proposal_extracted_text) }} Karakter
-                    </span>
+                {{-- Surat Permohonan --}}
+                @if($app->surat_permohonan_extracted_text)
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold text-gray-600 flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500"></i>
+                            Isi Surat Permohonan (Cleaned Text)
+                        </h4>
+                        <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
+                            {{ strlen($app->surat_permohonan_extracted_text) }} Karakter
+                        </span>
+                    </div>
+                    <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
+                        {{ $app->surat_permohonan_extracted_text }}
+                    </div>
                 </div>
-            </div>
-            <div class="p-8">
-                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner relative group font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
-                    {{ $app->proposal_extracted_text }}
+                @endif
+
+                {{-- Divider --}}
+                @if($app->surat_permohonan_extracted_text && $app->proposal_extracted_text)
+                <div class="border-t border-dashed border-gray-200"></div>
+                @endif
+
+                {{-- Surat Proposal --}}
+                @if($app->proposal_extracted_text)
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold text-gray-600 flex items-center gap-2">
+                            <i data-lucide="file-check" class="w-3.5 h-3.5 text-green-500"></i>
+                            Isi Proposal (Cleaned Text)
+                        </h4>
+                        <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-blue-100">
+                            {{ strlen($app->proposal_extracted_text) }} Karakter
+                        </span>
+                    </div>
+                    <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-200 max-h-60 overflow-y-auto shadow-inner font-mono text-[11px] leading-relaxed text-gray-600 italic whitespace-pre-wrap">
+                        {{ $app->proposal_extracted_text }}
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-3 italic flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i>
+                        Teks di atas adalah hasil pembersihan (pre-processing) otomatis oleh AI dari dokumen proposal.
+                    </p>
                 </div>
-                <p class="text-[10px] text-gray-400 mt-3 italic flex items-center gap-1.5">
-                    <i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i>
-                    Teks di atas adalah hasil pembersihan (pre-processing) otomatis oleh AI dari dokumen proposal.
-                </p>
+                @endif
+
             </div>
         </div>
         @endif
@@ -332,7 +345,6 @@
                     </div>
                 </div>
             </div>
-        </div>
         </div>
 
         <!-- Cross-Department Recommendations -->
@@ -411,14 +423,14 @@
             }
         </script>
 
-            <!-- Members & Leader Table -->
-            <div class="bg-white shadow rounded-lg p-6">
+        <!-- Members & Leader Table -->
+        <div class="bg-white shadow rounded-lg p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-xl font-semibold">Member(s)</h2>
                     
                     <div class="flex gap-2">
                         @if($app->status === 'menunggu')
-                            <button type="button" onclick="openActionModal('diterima')" class="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-lg hover:shadow-green-100">
+                            <button type="button" onclick="directAccept()" class="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition shadow-lg hover:shadow-green-100">
                                 <i data-lucide="check" class="w-4 h-4"></i>
                                 Terima Pengajuan
                             </button>
@@ -574,6 +586,31 @@
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
         });
+
+        function directAccept() {
+            Swal.fire({
+                title: 'Terima Pengajuan?',
+                text: 'Pengajuan magang ini akan diterima.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Terima',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('modalStatusInput').value = 'diterima';
+                    document.getElementById('modal_hrd_note').value = '';
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    document.getElementById('hrdActionForm').submit();
+                }
+            });
+        }
 
         function bulkApproveGroup() {
             Swal.fire({
