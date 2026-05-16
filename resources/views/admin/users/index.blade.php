@@ -21,6 +21,13 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-800 rounded-lg flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            {{ session('error') }}
+        </div>
+    @endif
+
     {{-- TABS --}}
     <div class="flex gap-1 mb-0 border-b border-gray-200">
         <button id="tabHrd"
@@ -78,14 +85,21 @@
                                     class="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs font-semibold">
                                     <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit
                                 </button>
-                                <form action="{{ route('admin.users.destroy', $u->id) }}" method="POST"
-                                      onsubmit="return confirm('Hapus user {{ $u->name }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold">
-                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
-                                    </button>
-                                </form>
+                                @if($u->applications_count > 0)
+                                    <span class="flex items-center gap-1 px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-semibold cursor-not-allowed"
+                                          title="Tidak bisa dihapus karena memiliki {{ $u->applications_count }} data pengajuan">
+                                        <i data-lucide="lock" class="w-3.5 h-3.5"></i> Hapus
+                                    </span>
+                                @else
+                                    <form action="{{ route('admin.users.destroy', $u->id) }}" method="POST"
+                                          onsubmit="return confirm('Hapus user {{ $u->name }}?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                            class="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -146,14 +160,21 @@
                                     class="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs font-semibold">
                                     <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit
                                 </button>
-                                <form action="{{ route('admin.users.destroy', $u->id) }}" method="POST"
-                                      onsubmit="return confirm('Hapus akun mahasiswa {{ $u->name }}? Semua pengajuan terkait juga akan terpengaruh.')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold">
-                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
-                                    </button>
-                                </form>
+                                @if($u->applications_count > 0)
+                                    <span class="flex items-center gap-1 px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-semibold cursor-not-allowed"
+                                          title="Tidak bisa dihapus karena memiliki {{ $u->applications_count }} data pengajuan">
+                                        <i data-lucide="lock" class="w-3.5 h-3.5"></i> Hapus
+                                    </span>
+                                @else
+                                    <form action="{{ route('admin.users.destroy', $u->id) }}" method="POST"
+                                          onsubmit="return confirm('Hapus akun mahasiswa {{ $u->name }}?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                            class="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

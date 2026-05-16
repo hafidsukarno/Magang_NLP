@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserController extends Controller
 {
     public function index() {
-        $hrdUsers      = User::where('role', 'hrd')->orderBy('name')->get();
-        $mahasiswaUsers = User::where('role', 'mahasiswa')->orderBy('name')->get();
+        $hrdUsers      = User::withCount('applications')->where('role', 'hrd')->orderBy('name')->get();
+        $mahasiswaUsers = User::withCount('applications')->where('role', 'mahasiswa')->orderBy('name')->get();
         return view('admin.users.index', compact('hrdUsers', 'mahasiswaUsers'));
     }
 
@@ -61,6 +61,14 @@ class AdminUserController extends Controller
 
         if (!in_array($user->role, ['hrd', 'mahasiswa'])) {
             abort(403, 'Tidak dapat menghapus user ini.');
+        }
+
+        // Cek apakah user memiliki data pengajuan (applications)
+        $hasApplications = $user->applications()->exists();
+
+        if ($hasApplications) {
+            $label = $user->role === 'hrd' ? 'HRD' : 'Mahasiswa';
+            return back()->with('error', "Tidak dapat menghapus user {$label} \"{$user->name}\" karena masih memiliki data pengajuan. Hapus data pengajuan terlebih dahulu.");
         }
 
         $user->delete();
